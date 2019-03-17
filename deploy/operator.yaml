@@ -16,7 +16,7 @@ spec:
       containers:
         - name: openshift-namespace-federation-operator
           # Replace this with the built image name
-          image: REPLACE_IMAGE
+          image: quay.io/raffaelespazzoli/openshift-namespace-federation-operator
           command:
           - openshift-namespace-federation-operator
           imagePullPolicy: Always
