@@ -1,0 +1,17 @@
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: clusterroles.rbac.authorization.k8s.io
+spec:
+  federatedType:
+    group: types.federation.k8s.io
+    kind: FederatedClusterRole
+    pluralName: federatedclusterroles
+    version: v1alpha1
+  namespaced: false
+  propagationEnabled: true
+  target:
+    group: rbac.authorization.k8s.io
+    kind: ClusterRole
+    pluralName: clusterroles
+    version: v1

@@ -2,14 +2,14 @@ package namespacefederation
 
 import (
 	"context"
+	"fmt"
 
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -54,18 +54,23 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner NamespaceFederation
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &federationv1alpha1.NamespaceFederation{},
-	})
-	if err != nil {
-		return err
-	}
+	// err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
+	// 	IsController: true,
+	// 	OwnerType:    &federationv1alpha1.NamespaceFederation{},
+	// })
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
 
 var _ reconcile.Reconciler = &ReconcileNamespaceFederation{}
+
+type RuntimeClient interface {
+	GetClient() client.Client
+	GetScheme() *runtime.Scheme
+}
 
 // ReconcileNamespaceFederation reconciles a NamespaceFederation object
 type ReconcileNamespaceFederation struct {
@@ -73,6 +78,14 @@ type ReconcileNamespaceFederation struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+}
+
+func (r *ReconcileNamespaceFederation) GetClient() client.Client {
+	return r.client
+}
+
+func (r *ReconcileNamespaceFederation) GetScheme() *runtime.Scheme {
+	return r.scheme
 }
 
 // Reconcile reads that state of the cluster for a NamespaceFederation object and makes changes based on the state read
@@ -100,54 +113,56 @@ func (r *ReconcileNamespaceFederation) Reconcile(request reconcile.Request) (rec
 		return reconcile.Result{}, err
 	}
 
-	// Define a new Pod object
-	pod := newPodForCR(instance)
+	r.createOrUpdateFederationControlPlane(instance)
 
-	// Set NamespaceFederation instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
+	r.createOrUpdateFederatedClusters(instance)
 
-	// Check if this Pod already exists
-	found := &corev1.Pod{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-		err = r.client.Create(context.TODO(), pod)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
+	r.createOrUpdateFederatedTypes(instance)
 
-		// Pod created successfully - don't requeue
-		return reconcile.Result{}, nil
-	} else if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
 	return reconcile.Result{}, nil
 }
 
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *federationv1alpha1.NamespaceFederation) *corev1.Pod {
-	labels := map[string]string{
-		"app": cr.Name,
+func createOrUpdateResource(r RuntimeClient, instance *federationv1alpha1.NamespaceFederation, obj metav1.Object) error {
+	runtimeObj, ok := (obj).(runtime.Object)
+	if !ok {
+		return fmt.Errorf("is not a %T a runtime.Object", obj)
 	}
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
-			Namespace: cr.Namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
-			},
-		},
+
+	_ = controllerutil.SetControllerReference(instance, obj, r.GetScheme())
+
+	err := r.GetClient().Create(context.TODO(), runtimeObj)
+	if err != nil && apierrors.IsAlreadyExists(err) {
+		return r.GetClient().Update(context.TODO(), runtimeObj)
+	} else if err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
 	}
+	return nil
+}
+
+func deleteResource(r RuntimeClient, obj metav1.Object) error {
+	runtimeObj, ok := (obj).(runtime.Object)
+	if !ok {
+		return fmt.Errorf("is not a %T a runtime.Object", obj)
+	}
+
+	err := r.GetClient().Delete(context.TODO(), runtimeObj, nil)
+	if err != nil && !apierrors.IsNotFound(err) {
+		log.Error(err, "unable to delete object ", "object", runtimeObj)
+		return err
+	}
+	return nil
+}
+
+func createIFNotExistsResource(r RuntimeClient, obj metav1.Object) error {
+	runtimeObj, ok := (obj).(runtime.Object)
+	if !ok {
+		return fmt.Errorf("is not a %T a runtime.Object", obj)
+	}
+
+	err := r.GetClient().Create(context.TODO(), runtimeObj)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		log.Error(err, "unable to create object ", "object", runtimeObj)
+		return err
+	}
+	return nil
 }

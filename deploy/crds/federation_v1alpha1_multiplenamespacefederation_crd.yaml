@@ -1,14 +1,14 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: namespacefederations.federation.raffa.systems
+  name: multiplenamespacefederations.federation.raffa.systems
 spec:
   group: federation.raffa.systems
   names:
-    kind: NamespaceFederation
-    listKind: NamespaceFederationList
-    plural: namespacefederations
-    singular: namespacefederation
+    kind: MultipleNamespaceFederation
+    listKind: MultipleNamespaceFederationList
+    plural: multiplenamespacefederations
+    singular: multiplenamespacefederation
   scope: Namespaced
   subresources:
     status: {}
@@ -27,22 +27,12 @@ spec:
               items:
                 type: string
               type: array
-            federatedTypes:
-              items:
-                type: object
-              type: array
+            namespaceSelector:
+              type: object
+          required:
+          - namespaceSelector
           type: object
         status:
-          properties:
-            clusterRegistrationStatuses:
-              items:
-                properties:
-                  cluster:
-                    type: string
-                  status:
-                    type: string
-                type: object
-              type: array
           type: object
   version: v1alpha1
   versions:

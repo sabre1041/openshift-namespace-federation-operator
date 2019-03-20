@@ -1,0 +1,23 @@
+- apiVersion: core.federation.k8s.io/v1alpha1
+  kind: FederatedCluster
+  metadata:
+    name: {{ .Cluster }}
+    namespace: {{ .Namespace }}
+  spec:
+    clusterRef:
+      name: {{ .Cluster }}
+    secretRef:
+      name: {{ .SecretName }}
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: {{ .SecretName }}
+    namespace: {{ .Namespace }}
+  type: Opaque      
+  data:
+    ca.crt: {{ .CaCRT }}
+    namespace: {{ .Namespace }}
+    service-ca.crt: {{ .ServiceCaCRT }}
+    token: {{ .Token }}
+
+

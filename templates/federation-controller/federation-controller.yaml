@@ -1,0 +1,113 @@
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    labels:
+      api: federation
+      kubebuilder.k8s.io: 1.0.0
+    name: federation-role
+    namespace: {{ .ObjectMeta.Namespace }}
+  rules:
+  - apiGroups:
+    - scheduling.federation.k8s.io
+    resources:
+    - '*'
+    verbs:
+    - '*'
+  - apiGroups:
+    - multiclusterdns.federation.k8s.io
+    resources:
+    - '*'
+    verbs:
+    - '*'
+  - apiGroups:
+    - core.federation.k8s.io
+    resources:
+    - '*'
+    verbs:
+    - '*'
+  - apiGroups:
+    - primitives.federation.k8s.io
+    resources:
+    - '*'
+    verbs:
+    - '*'
+  - apiGroups:
+    - clusterregistry.k8s.io
+    resources:
+    - '*'
+    verbs:
+    - '*'
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: federation-controller
+    namespace: {{ .ObjectMeta.Namespace }}
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: federation-rolebinding
+    namespace: {{ .ObjectMeta.Namespace }}
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: federation-role
+  subjects:
+  - kind: ServiceAccount
+    name: federation-controller
+    namespace: {{ .ObjectMeta.Namespace }}
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      api: federation
+      control-plane: controller-manager
+    name: federation-controller-manager-service
+    namespace: {{ .ObjectMeta.Namespace }}
+  spec:
+    clusterIP: None
+    selector:
+      api: federation
+      control-plane: controller-manager
+
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    creationTimestamp: null
+    labels:
+      api: federation
+      control-plane: controller-manager
+    name: federation-controller-manager
+    namespace: {{ .ObjectMeta.Namespace }}
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        api: federation
+        control-plane: controller-manager
+    serviceName: federation-controller-manager-service
+    template:
+      metadata:
+        labels:
+          api: federation
+          control-plane: controller-manager
+      spec:
+        containers:
+        - args:
+          - --install-crds=false
+          - --limited-scope=true
+          - --federation-namespace=$(FEDERATION_NAMESPACE)
+          - --registry-namespace=$(CLUSTER_REGISTRY_NAMESPACE)
+          command:
+          - /root/controller-manager
+          image: "quay.io/kubernetes-multicluster/federation-v2:latest"
+          name: controller-manager
+          env:
+          - name: FEDERATION_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: CLUSTER_REGISTRY_NAMESPACE
+            value: kube-multicluster-public     

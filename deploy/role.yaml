@@ -50,5 +50,6 @@ rules:
   - federation.raffa.systems
   resources:
   - '*'
+  - multiplenamespacefederations
   verbs:
   - '*'

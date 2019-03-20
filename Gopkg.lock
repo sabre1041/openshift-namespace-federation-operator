@@ -4,8 +4,8 @@
 [[projects]]
   name = "cloud.google.com/go"
   packages = ["compute/metadata"]
-  revision = "f52f9bc132541d2aa914f42100c36d10b1ef7e0c"
-  version = "v0.37.0"
+  revision = "2fa99f4c25c422525316dcb1fd3d5b94e1944cfd"
+  version = "v0.37.1"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
@@ -203,6 +203,15 @@
   version = "v1.1.6"
 
 [[projects]]
+  name = "github.com/kubernetes-sigs/federation-v2"
+  packages = [
+    "pkg/apis/core/common",
+    "pkg/apis/core/v1alpha1"
+  ]
+  revision = "d56dfb3b83e8d40e584b5e66116de98328846fd2"
+  version = "v0.0.6"
+
+[[projects]]
   branch = "master"
   name = "github.com/mailru/easyjson"
   packages = [
@@ -246,7 +255,7 @@
     "pkg/metrics",
     "version"
   ]
-  revision = "4228df001526d52e382a32470a98cd85fd95945e"
+  revision = "8aad21a7c3fb1648e305363a80aef9bddc57d398"
 
 [[projects]]
   name = "github.com/pborman/uuid"
@@ -308,7 +317,7 @@
     "nfs",
     "xfs"
   ]
-  revision = "e56f2e22fc761e82a34aca553f6725e2aff4fe6c"
+  revision = "1ce7e0478fd3b3d90bedf551f7f8d4cab83e5c7f"
 
 [[projects]]
   name = "github.com/rogpeppe/go-internal"
@@ -377,7 +386,7 @@
     "http2/hpack",
     "idna"
   ]
-  revision = "9f648a60d9775ef5c977e7669d1673a7a67bef33"
+  revision = "d196dffd7c2beec1957382065df08bcc353b9706"
 
 [[projects]]
   branch = "master"
@@ -398,7 +407,7 @@
     "unix",
     "windows"
   ]
-  revision = "a2f829d7f35f2ed1c3520c553a6226495455cae0"
+  revision = "6c81ef8f67ca3f42fc9cd71dfbd5f35b0c4b5771"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -445,7 +454,7 @@
     "internal/module",
     "internal/semver"
   ]
-  revision = "f0bfdbff1f9c986484a9f02fc198b1efcfe76ebe"
+  revision = "bb1270c20edf080f9f069ea11a1fe5c2b0ebd62c"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -716,15 +725,26 @@
     "pkg/client",
     "pkg/client/apiutil",
     "pkg/client/config",
+    "pkg/controller",
+    "pkg/controller/controllerutil",
+    "pkg/event",
+    "pkg/handler",
+    "pkg/internal/controller",
+    "pkg/internal/controller/metrics",
     "pkg/internal/recorder",
     "pkg/leaderelection",
     "pkg/manager",
     "pkg/metrics",
     "pkg/patch",
+    "pkg/predicate",
+    "pkg/reconcile",
     "pkg/recorder",
     "pkg/runtime/inject",
     "pkg/runtime/log",
+    "pkg/runtime/scheme",
     "pkg/runtime/signals",
+    "pkg/source",
+    "pkg/source/internal",
     "pkg/webhook/admission",
     "pkg/webhook/admission/types",
     "pkg/webhook/internal/metrics",
@@ -755,6 +775,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "903667189e43e675727fd3082957bcb0d3f0483c28b378efe4f22e8a2e99d651"
+  inputs-digest = "708c2fb0e856101841160f6f7ce96c8994baebe05580ac0c44b7ec0226397b00"
   solver-name = "gps-cdcl"
   solver-version = 1

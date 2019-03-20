@@ -13,6 +13,9 @@ type NamespaceFederationSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
+	// These are cluster name ref to cluster defined in the cluster registry
+	Clusters       []string          `json:"clusters,omitempty"`
+	FederatedTypes []metav1.TypeMeta `json:"federatedTypes,omitempty"`
 }
 
 // NamespaceFederationStatus defines the observed state of NamespaceFederation
@@ -21,6 +24,13 @@ type NamespaceFederationStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
+	ClusterRegistrationStatuses []ClusterRegistrationStatus `json:"clusterRegistrationStatuses,omitempty"`
+}
+
+// ClusterRegistrationStatus reports whether the status of the cluster registration to the namespace controller
+type ClusterRegistrationStatus struct {
+	Cluster string `json:"cluster,omitempty"`
+	Status  string `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
