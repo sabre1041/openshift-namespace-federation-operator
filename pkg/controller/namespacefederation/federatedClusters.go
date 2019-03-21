@@ -19,21 +19,21 @@ import (
 
 var federatedClusterTemplate *template.Template
 var remoteFederatedClusterTemplate *template.Template
+
 const remoteServiceAccountName string = "federation-controllee"
 
-func (r *ReconcileNamespaceFederation) createOrUpdateFederatedClusters(instance *federationv1alpha1.NamespaceFederation) []error {
+func (r *ReconcileNamespaceFederation) createOrUpdateFederatedClusters(instance *federationv1alpha1.NamespaceFederation) error {
 	addClusters, deleteClusters, err := r.getAddAndDeleteCluster(instance)
 	if err != nil {
 		log.Error(err, "Error calculating add and delete clusters for instance", "instance", *instance)
-		return []error{err}
+		return err
 	}
-	errs := make([]error, len(addClusters)+len(deleteClusters))
 	// first we take care of deleting the deleteclusetr
 
 	for _, cluster := range deleteClusters {
 		err = r.manageDeleteCluster(cluster, instance)
 		log.Error(err, "Unable to successfully delete cluster", "cluster", cluster)
-		errs = append(errs, err)
+		return err
 	}
 
 	//then we add new clusters.
@@ -41,10 +41,10 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedClusters(instance 
 	for _, cluster := range addClusters {
 		err = r.manageAddCluster(cluster, instance)
 		log.Error(err, "Unable to successfully add cluster", "cluster", cluster)
-		errs = append(errs, err)
+		return err
 	}
 
-	return errs
+	return nil
 
 }
 
@@ -113,8 +113,6 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 	return nil
 }
 
-
-
 func getSecretForRemoteServiceAccount(remoteClusterClient *RemoteClusterClient, cluster string, instance *federationv1alpha1.NamespaceFederation) (*corev1.Secret, error) {
 	remoteServiceAccount := &corev1.ServiceAccount{}
 	err := remoteClusterClient.client.Get(context.TODO(), types.NamespacedName{
@@ -149,8 +147,6 @@ func getSecretForRemoteServiceAccount(remoteClusterClient *RemoteClusterClient, 
 	}
 	return remoteTokenSecret, nil
 }
-
-
 
 func InitializeFederatedClusterTemplates(federatedClusterTemplateFileName string, remoteFederatedClusterTemplateFileName string) error {
 	text, err := ioutil.ReadFile(federatedClusterTemplateFileName)
@@ -260,7 +256,7 @@ func (r *ReconcileNamespaceFederation) getAddAndDeleteCluster(instance *federati
 	// let's calculate the add clusters
 	addClusters := make([]string, len(instance.Spec.Clusters))
 	for _, cluster := range instance.Spec.Clusters {
-		if !contains(federatedClusterList, cluster) {
+		if !containsCluster(federatedClusterList, cluster) {
 			addClusters = append(addClusters, cluster)
 		}
 	}
@@ -268,7 +264,7 @@ func (r *ReconcileNamespaceFederation) getAddAndDeleteCluster(instance *federati
 	//let's calculate the delete clusters
 	deleteClusters := make([]string, len(federatedClusterList.Items))
 	for _, federatedCluster := range federatedClusterList.Items {
-		if !contains2(instance.Spec.Clusters, &federatedCluster) {
+		if !containsFederatedCluster(instance.Spec.Clusters, &federatedCluster) {
 			deleteClusters = append(deleteClusters, federatedCluster.Spec.ClusterRef.Name)
 		}
 	}
@@ -277,7 +273,7 @@ func (r *ReconcileNamespaceFederation) getAddAndDeleteCluster(instance *federati
 
 }
 
-func contains(federatedClusterList *federationv2v1alpha1.FederatedClusterList, cluster string) bool {
+func containsCluster(federatedClusterList *federationv2v1alpha1.FederatedClusterList, cluster string) bool {
 	for _, federatedCluster := range federatedClusterList.Items {
 		if cluster == federatedCluster.Spec.ClusterRef.Name {
 			return true
@@ -286,7 +282,7 @@ func contains(federatedClusterList *federationv2v1alpha1.FederatedClusterList, c
 	return false
 }
 
-func contains2(clusters []string, federatedCluster *federationv2v1alpha1.FederatedCluster) bool {
+func containsFederatedCluster(clusters []string, federatedCluster *federationv2v1alpha1.FederatedCluster) bool {
 	for _, cluster := range clusters {
 		if cluster == federatedCluster.Spec.ClusterRef.Name {
 			return true

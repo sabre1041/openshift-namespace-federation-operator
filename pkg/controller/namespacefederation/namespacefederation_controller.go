@@ -128,7 +128,9 @@ func createOrUpdateResource(r RuntimeClient, instance *federationv1alpha1.Namesp
 		return fmt.Errorf("is not a %T a runtime.Object", obj)
 	}
 
-	_ = controllerutil.SetControllerReference(instance, obj, r.GetScheme())
+	if instance != nil {
+		_ = controllerutil.SetControllerReference(instance, obj, r.GetScheme())
+	}
 
 	err := r.GetClient().Create(context.TODO(), runtimeObj)
 	if err != nil && apierrors.IsAlreadyExists(err) {
