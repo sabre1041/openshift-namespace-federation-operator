@@ -14,8 +14,18 @@ type NamespaceFederationSpec struct {
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
 	// These are cluster name ref to cluster defined in the cluster registry
-	Clusters       []string          `json:"clusters,omitempty"`
+	Clusters       []Cluster         `json:"clusters,omitempty"`
 	FederatedTypes []metav1.TypeMeta `json:"federatedTypes,omitempty"`
+}
+
+type Cluster struct {
+	Name           string              `json:"name,omitempty"`
+	AdminSecretRef NamespacedObjectRef `json:"adminSecretRef,omitempty"`
+}
+
+type NamespacedObjectRef struct {
+	Name      string `json:"name,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // NamespaceFederationStatus defines the observed state of NamespaceFederation

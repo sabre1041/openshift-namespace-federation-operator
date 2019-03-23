@@ -167,8 +167,7 @@ func schema_pkg_apis_federation_v1alpha1_NamespaceFederationSpec(ref common.Refe
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Ref: ref("github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1.Cluster"),
 									},
 								},
 							},
@@ -190,7 +189,7 @@ func schema_pkg_apis_federation_v1alpha1_NamespaceFederationSpec(ref common.Refe
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta"},
+			"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1.Cluster", "k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta"},
 	}
 }
 

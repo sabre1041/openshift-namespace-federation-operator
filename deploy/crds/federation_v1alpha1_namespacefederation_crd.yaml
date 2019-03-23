@@ -25,7 +25,17 @@ spec:
           properties:
             clusters:
               items:
-                type: string
+                properties:
+                  adminSecretRef:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                  name:
+                    type: string
+                type: object
               type: array
             federatedTypes:
               items:

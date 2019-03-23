@@ -1,7 +1,9 @@
 package namespacefederation
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
 	"testing"
 	"text/template"
 
@@ -15,7 +17,7 @@ var instance = federationv1alpha1.NamespaceFederation{
 	},
 }
 
-const templateFile string = "/home/rspazzol/go/src/github.com/raffaelespazzoli/openshift-namespace-federation-operator/templates/federation-controller/federation-controller.yaml"
+var templateFile = fmt.Sprintf("%s/src/github.com/raffaelespazzoli/openshift-namespace-federation-operator/templates/federation-controller/federation-controller.yaml", os.Getenv("GOPATH"))
 
 func TestFullConfig(t *testing.T) {
 	text, err := ioutil.ReadFile(templateFile)

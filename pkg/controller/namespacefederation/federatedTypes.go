@@ -149,7 +149,24 @@ func InitializeFederatedTypesTemplates(federatedTypesTemplateFileName string) er
 		return err
 	}
 
-	federatedTypesTemplate, err = template.New("FederatedTypes").Parse(string(text))
+	federatedTypesTemplate = template.New("FederatedTypes").Funcs(template.FuncMap{
+		"getName": func(simpleType metav1.TypeMeta) string {
+			lowerCasePlural := strings.ToLower(simpleType.Kind) + "s"
+			group := simpleType.APIVersion[:strings.Index(simpleType.APIVersion, "/")]
+			return lowerCasePlural + "." + group
+		},
+		"getGroup": func(apiVersion string) string {
+			return apiVersion[:strings.Index(apiVersion, "/")]
+		},
+		"getVersion": func(apiVersion string) string {
+			return apiVersion[strings.Index(apiVersion, "/"):]
+		},
+		"namespaced": func(crd extensionv1beta1.CustomResourceDefinition) bool {
+			return crd.Spec.Scope == "namespace"
+		},
+	})
+
+	federatedTypesTemplate, err = federatedTypesTemplate.Parse(string(text))
 	if err != nil {
 		log.Error(err, "Error parsing template", "template", text)
 		return err
