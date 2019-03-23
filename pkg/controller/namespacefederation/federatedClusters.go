@@ -3,9 +3,7 @@ package namespacefederation
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"strings"
-	"text/template"
 
 	federationv2v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
@@ -16,9 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-var federatedClusterTemplate *template.Template
-var remoteFederatedClusterTemplate *template.Template
 
 const remoteServiceAccountName string = "federation-controllee"
 
@@ -156,34 +151,6 @@ func getSecretForRemoteServiceAccount(remoteClusterClient *RemoteClusterClient, 
 		return nil, err
 	}
 	return remoteTokenSecret, nil
-}
-
-func InitializeFederatedClusterTemplates(federatedClusterTemplateFileName string, remoteFederatedClusterTemplateFileName string) error {
-	text, err := ioutil.ReadFile(federatedClusterTemplateFileName)
-	if err != nil {
-		log.Error(err, "Error reading rolebinding template file", "filename", federatedClusterTemplateFileName)
-		return err
-	}
-
-	federatedClusterTemplate, err = template.New("FederatedCluster").Parse(string(text))
-	if err != nil {
-		log.Error(err, "Error parsing template", "template", text)
-		return err
-	}
-
-	text, err = ioutil.ReadFile(remoteFederatedClusterTemplateFileName)
-	if err != nil {
-		log.Error(err, "Error reading rolebinding template file", "filename", federatedClusterTemplateFileName)
-		return err
-	}
-
-	remoteFederatedClusterTemplate, err = template.New("FederatedCluster").Parse(string(text))
-	if err != nil {
-		log.Error(err, "Error parsing template", "template", text)
-		return err
-	}
-
-	return nil
 }
 
 type federatedClusterMerge struct {

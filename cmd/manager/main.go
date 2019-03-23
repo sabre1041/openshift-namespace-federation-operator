@@ -9,6 +9,7 @@ import (
 
 	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis"
 	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller"
+	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/namespacefederation"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
@@ -64,6 +65,51 @@ func main() {
 		log.Error(err, "Failed to get watch namespace")
 		os.Exit(1)
 	}
+
+	// initialize the templates
+	federationControllerTemplateFileName, found := os.LookupEnv("FEDERATION_CONTROLLER_TEMPLATE")
+	if !found {
+		log.Info("Error: FEDERATION_CONTROLLER_TEMPLATE must be set")
+		os.Exit(1)
+	}
+
+	err = namespacefederation.InitializeFederationControlPlaneTemplates(federationControllerTemplateFileName)
+
+	if err != nil {
+		log.Error(err, "Unable to initialize federation control plane template")
+		os.Exit(1)
+	}
+
+	remoteFederatedClusterTemplateFileName, found := os.LookupEnv("REMOTE_FEDERATED_CLUSTER_TEMPLATE")
+	if !found {
+		log.Info("Error: REMOTE_FEDERATED_CLUSTER_TEMPLATE must be set")
+		os.Exit(1)
+	}
+	federatedClusterTemplateFileName, found := os.LookupEnv("FEDERATED_CLUSTER_TEMPLATE")
+	if !found {
+		log.Info("Error: FEDERATED_CLUSTER_TEMPLATE must be set")
+		os.Exit(1)
+	}
+
+	err = namespacefederation.InitializeFederatedClusterTemplates(federatedClusterTemplateFileName, remoteFederatedClusterTemplateFileName)
+	if err != nil {
+		log.Error(err, "Unable to initialize federated cluster templates")
+		os.Exit(1)
+	}
+
+	federatedTypesTemplateFileName, found := os.LookupEnv("FEDERATED_TYPES_TEMPLATE")
+	if !found {
+		log.Info("Error: FEDERATED_TYPES_TEMPLATE must be set")
+		os.Exit(1)
+	}
+
+	err = namespacefederation.InitializeFederatedTypesTemplates(federatedTypesTemplateFileName)
+	if err != nil {
+		log.Error(err, "Unable to initialize federated types template")
+		os.Exit(1)
+	}
+
+	log.Info("Templates initialized correctly")
 
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()

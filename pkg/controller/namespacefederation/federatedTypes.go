@@ -2,9 +2,7 @@ package namespacefederation
 
 import (
 	"context"
-	"io/ioutil"
 	"strings"
-	"text/template"
 
 	federationv2v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,8 +12,6 @@ import (
 
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
 )
-
-var federatedTypesTemplate *template.Template
 
 type SimpleTyepCRDPair struct {
 	SimpleType metav1.TypeMeta
@@ -140,37 +136,4 @@ func getAncestorType(federatedType *federationv2v1alpha1.FederatedTypeConfig) me
 
 func generateCRDS(types []metav1.TypeMeta) ([]SimpleTyepCRDPair, error) {
 	return nil, nil
-}
-
-func InitializeFederatedTypesTemplates(federatedTypesTemplateFileName string) error {
-	text, err := ioutil.ReadFile(federatedTypesTemplateFileName)
-	if err != nil {
-		log.Error(err, "Error reading rolebinding template file", "filename", federatedTypesTemplateFileName)
-		return err
-	}
-
-	federatedTypesTemplate = template.New("FederatedTypes").Funcs(template.FuncMap{
-		"getName": func(simpleType metav1.TypeMeta) string {
-			lowerCasePlural := strings.ToLower(simpleType.Kind) + "s"
-			group := simpleType.APIVersion[:strings.Index(simpleType.APIVersion, "/")]
-			return lowerCasePlural + "." + group
-		},
-		"getGroup": func(apiVersion string) string {
-			return apiVersion[:strings.Index(apiVersion, "/")]
-		},
-		"getVersion": func(apiVersion string) string {
-			return apiVersion[strings.Index(apiVersion, "/"):]
-		},
-		"namespaced": func(crd extensionv1beta1.CustomResourceDefinition) bool {
-			return crd.Spec.Scope == "namespace"
-		},
-	})
-
-	federatedTypesTemplate, err = federatedTypesTemplate.Parse(string(text))
-	if err != nil {
-		log.Error(err, "Error parsing template", "template", text)
-		return err
-	}
-
-	return nil
 }
