@@ -306,6 +306,6 @@ func (r *RemoteClusterClient) GetScheme() *runtime.Scheme {
 	return r.scheme
 }
 
-func (r *ReconcileNamespaceFederation) getAdminClientForCluster(cluster string, instance *federationv1alpha1.NamespaceFederation) (*RemoteClusterClient, error) {
+func (r *ReconcileNamespaceFederation) getAdminClientForCluster(secret corev1.Secret) (*RemoteClusterClient, error) {
 	return nil, nil
 }

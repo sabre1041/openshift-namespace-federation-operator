@@ -17,6 +17,11 @@ import (
 
 var federatedTypesTemplate *template.Template
 
+type SimpleTyepCRDPair struct {
+	SimpleType metav1.TypeMeta
+	CRD        extensionv1beta1.CustomResourceDefinition
+}
+
 func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *federationv1alpha1.NamespaceFederation) error {
 	addTypes, deleteDeleteTypes, err := r.getAddAndDeleteTypes(instance)
 
@@ -33,20 +38,20 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *fe
 	}
 
 	//for add clusters we generate the crd and the federated types and we create them
-	crds, err := generateCRDS(addTypes)
+	pairs, err := generateCRDS(addTypes)
 	if err != nil {
 		log.Error(err, "Error generating crd for addTypes", "addTyoes", addTypes)
 		return err
 	}
-	for _, obj := range crds {
-		err = createOrUpdateResource(r, nil, &obj)
+	for _, pair := range pairs {
+		err = createOrUpdateResource(r, nil, &pair.CRD)
 		if err != nil {
-			log.Error(err, "unable to create/update object", "object", &obj)
+			log.Error(err, "unable to create/update object", "object", &pair.CRD)
 			return err
 		}
 	}
 
-	objs, err := processTemplateArray(addTypes, federatedTypesTemplate)
+	objs, err := processTemplateArray(pairs, federatedTypesTemplate)
 	if err != nil {
 		log.Error(err, "error creating manifest from template")
 		return err
@@ -133,7 +138,7 @@ func getAncestorType(federatedType *federationv2v1alpha1.FederatedTypeConfig) me
 	}
 }
 
-func generateCRDS(types []metav1.TypeMeta) ([]extensionv1beta1.CustomResourceDefinition, error) {
+func generateCRDS(types []metav1.TypeMeta) ([]SimpleTyepCRDPair, error) {
 	return nil, nil
 }
 

@@ -1,22 +1,24 @@
-apiVersion: core.federation.k8s.io/v1alpha1
-kind: FederatedTypeConfig
-metadata:
-  name: configmaps
-  namespace: {{ .Namespace }}
-spec:
-  comparisonField: ResourceVersion
-  namespaced: true
-  override:
-    kind: FederatedConfigMapOverride
-  overridePaths:
-    - path: data
-  placement:
-    kind: FederatedConfigMapPlacement
-  propagationEnabled: true
-  target:
-    kind: ConfigMap
-    version: v1
-  template:
-    group: core.federation.k8s.io
-    kind: FederatedConfigMap
-    version: v1alpha1
+{{ range .}}
+- apiVersion: core.federation.k8s.io/v1alpha1
+  kind: FederatedTypeConfig
+  metadata:
+    name: {{ getName .simpleType }}
+  spec:
+    comparisonField: ResourceVersion
+    namespaced: {{ namespaced .CRD.Spec.Scope }}
+    override:
+      kind: {{ .CRD.TypeMeta.Kind }}Override
+    # overridePaths:
+    #   - path: data
+    placement:
+      kind: {{ .CRD.TypeMeta.Kind }}Placement
+    propagationEnabled: true
+    target:
+      kind: {{ .simpleType.Kind }}
+      group: {{ getGroup .simpleType.APIVersion }}
+      version: {{ getVersion .simpleType.APIVersion }}
+    template:
+      group: {{ .CRD.TypeMeta.Group }}
+      kind: {{ .CRD.TypeMeta.Kind }}
+      version: {{ .CRD.TypeMeta.Version }}
+{{ end }}    
