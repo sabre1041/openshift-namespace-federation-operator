@@ -53,6 +53,7 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *fe
 		return err
 	}
 	for _, obj := range *objs {
+		obj.SetNamespace(instance.GetNamespace())
 		err = createOrUpdateResource(r, instance, &obj)
 		if err != nil {
 			log.Error(err, "unable to create/update object", "object", &obj)

@@ -37,7 +37,7 @@ func InitializeFederatedClusterTemplates(federatedClusterTemplateFileName string
 		return err
 	}
 
-	remoteFederatedClusterTemplate, err = template.New("FederatedCluster").Parse(string(text))
+	remoteFederatedClusterTemplate, err = template.New("RemoteFederatedCluster").Parse(string(text))
 	if err != nil {
 		log.Error(err, "Error parsing template", "template", text)
 		return err
