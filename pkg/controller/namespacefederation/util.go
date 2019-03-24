@@ -2,14 +2,21 @@ package namespacefederation
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"text/template"
 
+	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
 	extensionv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 )
 
@@ -141,4 +148,62 @@ func processTemplateArray(data interface{}, template *template.Template) (*[]uns
 	}
 
 	return &obj, err
+}
+
+func createOrUpdateResource(r RuntimeClient, instance *federationv1alpha1.NamespaceFederation, obj metav1.Object) error {
+	runtimeObj, ok := (obj).(runtime.Object)
+	if !ok {
+		return fmt.Errorf("is not a %T a runtime.Object", obj)
+	}
+
+	if instance != nil {
+		_ = controllerutil.SetControllerReference(instance, obj, r.GetScheme())
+	}
+
+	obj2 := unstructured.Unstructured{}
+	obj2.SetKind(runtimeObj.GetObjectKind().GroupVersionKind().Kind)
+	if runtimeObj.GetObjectKind().GroupVersionKind().Group != "" {
+		obj2.SetAPIVersion(runtimeObj.GetObjectKind().GroupVersionKind().Group + "/" + runtimeObj.GetObjectKind().GroupVersionKind().Version)
+	} else {
+		obj2.SetAPIVersion(runtimeObj.GetObjectKind().GroupVersionKind().Version)
+	}
+
+	err := r.GetClient().Get(context.TODO(), types.NamespacedName{
+		Namespace: obj.GetNamespace(),
+		Name:      obj.GetName(),
+	}, &obj2)
+
+	if err != nil {
+		return r.GetClient().Create(context.TODO(), runtimeObj)
+	}
+	obj.SetResourceVersion(obj2.GetResourceVersion())
+	return r.GetClient().Update(context.TODO(), runtimeObj)
+}
+
+func deleteResource(r RuntimeClient, obj metav1.Object) error {
+	runtimeObj, ok := (obj).(runtime.Object)
+	if !ok {
+		return fmt.Errorf("is not a %T a runtime.Object", obj)
+	}
+
+	err := r.GetClient().Delete(context.TODO(), runtimeObj, nil)
+	if err != nil && !apierrors.IsNotFound(err) {
+		log.Error(err, "unable to delete object ", "object", runtimeObj)
+		return err
+	}
+	return nil
+}
+
+func createIfNotExists(r RuntimeClient, obj metav1.Object) error {
+	runtimeObj, ok := (obj).(runtime.Object)
+	if !ok {
+		return fmt.Errorf("is not a %T a runtime.Object", obj)
+	}
+
+	err := r.GetClient().Create(context.TODO(), runtimeObj)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		log.Error(err, "unable to create object ", "object", runtimeObj)
+		return err
+	}
+	return nil
 }

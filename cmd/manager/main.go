@@ -7,15 +7,15 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis"
-	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller"
-	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/namespacefederation"
-
+	federationv2v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
+	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis"
+	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller"
+	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/namespacefederation"
 	"github.com/spf13/pflag"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -141,6 +141,11 @@ func main() {
 
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err := federationv2v1alpha1.SchemeBuilder.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}

@@ -2,17 +2,13 @@ package namespacefederation
 
 import (
 	"context"
-	"fmt"
 
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -133,51 +129,4 @@ func (r *ReconcileNamespaceFederation) Reconcile(request reconcile.Request) (rec
 	}
 
 	return reconcile.Result{}, nil
-}
-
-func createOrUpdateResource(r RuntimeClient, instance *federationv1alpha1.NamespaceFederation, obj metav1.Object) error {
-	runtimeObj, ok := (obj).(runtime.Object)
-	if !ok {
-		return fmt.Errorf("is not a %T a runtime.Object", obj)
-	}
-
-	if instance != nil {
-		_ = controllerutil.SetControllerReference(instance, obj, r.GetScheme())
-	}
-
-	err := r.GetClient().Create(context.TODO(), runtimeObj)
-	if err != nil && apierrors.IsAlreadyExists(err) {
-		return r.GetClient().Update(context.TODO(), runtimeObj)
-	} else if err != nil && !apierrors.IsAlreadyExists(err) {
-		return err
-	}
-	return nil
-}
-
-func deleteResource(r RuntimeClient, obj metav1.Object) error {
-	runtimeObj, ok := (obj).(runtime.Object)
-	if !ok {
-		return fmt.Errorf("is not a %T a runtime.Object", obj)
-	}
-
-	err := r.GetClient().Delete(context.TODO(), runtimeObj, nil)
-	if err != nil && !apierrors.IsNotFound(err) {
-		log.Error(err, "unable to delete object ", "object", runtimeObj)
-		return err
-	}
-	return nil
-}
-
-func createIFNotExistsResource(r RuntimeClient, obj metav1.Object) error {
-	runtimeObj, ok := (obj).(runtime.Object)
-	if !ok {
-		return fmt.Errorf("is not a %T a runtime.Object", obj)
-	}
-
-	err := r.GetClient().Create(context.TODO(), runtimeObj)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		log.Error(err, "unable to create object ", "object", runtimeObj)
-		return err
-	}
-	return nil
 }

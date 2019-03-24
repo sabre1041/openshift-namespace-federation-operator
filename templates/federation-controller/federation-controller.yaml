@@ -8,6 +8,12 @@
     namespace: {{ .ObjectMeta.Namespace }}
   rules:
   - apiGroups:
+    - ''
+    resources:
+    - 'configmaps'
+    verbs:
+    - '*'
+  - apiGroups:
     - scheduling.federation.k8s.io
     resources:
     - '*'
