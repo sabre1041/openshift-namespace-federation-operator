@@ -7,6 +7,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -31,7 +32,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileNamespaceFederation{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileNamespaceFederation{client: mgr.GetClient(), scheme: mgr.GetScheme(), config: mgr.GetConfig()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -74,6 +75,7 @@ type ReconcileNamespaceFederation struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+	config *rest.Config
 }
 
 func (r *ReconcileNamespaceFederation) GetClient() client.Client {
@@ -82,6 +84,10 @@ func (r *ReconcileNamespaceFederation) GetClient() client.Client {
 
 func (r *ReconcileNamespaceFederation) GetScheme() *runtime.Scheme {
 	return r.scheme
+}
+
+func (r *ReconcileNamespaceFederation) GetConfig() *rest.Config {
+	return r.config
 }
 
 // Reconcile reads that state of the cluster for a NamespaceFederation object and makes changes based on the state read

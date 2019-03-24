@@ -56,11 +56,19 @@ required = [
   name = "sigs.k8s.io/controller-runtime"
   version = "=v0.1.10"
 
+[[override]]
+  name = "github.com/kubernetes-sigs/federation-v2"
+  version = "=v0.0.7"
+
 [[constraint]]
   name = "github.com/operator-framework/operator-sdk"
   # The version rule is used for a specific release and the master branch for in between releases.
   branch = "master" #osdk_branch_annotation
   # version = "=v0.6.0" #osdk_version_annotation
+
+[[constraint]]
+  branch = "master"
+  name = "k8s.io/kubectl"
 
 [prune]
   go-tests = true
