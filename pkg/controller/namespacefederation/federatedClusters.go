@@ -3,6 +3,8 @@ package namespacefederation
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
 	"strings"
 
 	federationv2v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -12,7 +14,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 const remoteServiceAccountName string = "federation-controllee"
@@ -272,5 +276,26 @@ func (r *RemoteClusterClient) GetScheme() *runtime.Scheme {
 }
 
 func (r *ReconcileNamespaceFederation) getAdminClientForCluster(secret *corev1.Secret) (*RemoteClusterClient, error) {
-	return nil, errors.New("not implemented")
+
+	if len(secret.Data) == 0 {
+		return nil, fmt.Errorf("Secret contains no values")
+	}
+
+	for _, value := range secret.Data {
+		restConfig, err := clientcmd.RESTConfigFromKubeConfig(value)
+
+		if err != nil {
+			return nil, err
+		}
+
+		mgr, err := manager.New(restConfig, manager.Options{})
+		if err != nil {
+			log.Error(err, "")
+			os.Exit(1)
+		}
+		return &RemoteClusterClient{client: mgr.GetClient(), scheme: mgr.GetScheme()}, nil
+
+	}
+
+	return nil, nil
 }
