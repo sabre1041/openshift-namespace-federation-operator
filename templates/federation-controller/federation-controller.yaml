@@ -1,18 +1,18 @@
 - apiVersion: rbac.authorization.k8s.io/v1
-  kind: Role
+  kind: ClusterRole
   metadata:
     labels:
       api: federation
       kubebuilder.k8s.io: 1.0.0
     name: federation-role
-    namespace: {{ .ObjectMeta.Namespace }}
   rules:
   - apiGroups:
     - ''
     resources:
     - 'configmaps'
+    - 'secrets'
     verbs:
-    - '*'
+    - '*'    
   - apiGroups:
     - scheduling.federation.k8s.io
     resources:
@@ -51,13 +51,12 @@
     namespace: {{ .ObjectMeta.Namespace }}
 
 - apiVersion: rbac.authorization.k8s.io/v1
-  kind: RoleBinding
+  kind: ClusterRoleBinding
   metadata:
-    name: federation-rolebinding
-    namespace: {{ .ObjectMeta.Namespace }}
+    name: federation-rolebinding-{{ .ObjectMeta.Namespace }}
   roleRef:
     apiGroup: rbac.authorization.k8s.io
-    kind: Role
+    kind: ClusterRole
     name: federation-role
   subjects:
   - kind: ServiceAccount
@@ -116,4 +115,5 @@
               fieldRef:
                 fieldPath: metadata.namespace
           - name: CLUSTER_REGISTRY_NAMESPACE
-            value: kube-multicluster-public     
+            value: kube-multicluster-public
+        serviceAccountName: federation-controller         

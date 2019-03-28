@@ -14,10 +14,10 @@
     name: {{ .SecretName }}
     namespace: {{ .Namespace }}
   type: Opaque      
-  data:
-    ca.crt: {{ .CaCRT }}
+  stringData:
+    ca.crt: '{{ parseNewLines .CaCRT }}'
     namespace: {{ .Namespace }}
-    service-ca.crt: {{ .ServiceCaCRT }}
+    service-ca.crt: '{{ parseNewLines .ServiceCaCRT }}'
     token: {{ .Token }}
 
 

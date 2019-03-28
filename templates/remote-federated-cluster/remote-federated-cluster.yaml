@@ -47,6 +47,7 @@
   apiVersion: rbac.authorization.k8s.io/v1
   metadata:
     name: 'federation-controller-manager'
+    namespace: {{ .ObjectMeta.Namespace }}
   subjects:
     - kind: ServiceAccount
       name: federation-controllee

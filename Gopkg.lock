@@ -206,10 +206,11 @@
   name = "github.com/kubernetes-sigs/federation-v2"
   packages = [
     "pkg/apis/core/common",
+    "pkg/apis/core/typeconfig",
     "pkg/apis/core/v1alpha1"
   ]
-  revision = "d56dfb3b83e8d40e584b5e66116de98328846fd2"
-  version = "v0.0.6"
+  revision = "3e251608ca5357080b95a0bedc45759652f17d29"
+  version = "v0.0.7"
 
 [[projects]]
   branch = "master"
@@ -528,7 +529,9 @@
   name = "k8s.io/apiextensions-apiserver"
   packages = [
     "pkg/apis/apiextensions",
-    "pkg/apis/apiextensions/v1beta1"
+    "pkg/apis/apiextensions/v1beta1",
+    "pkg/client/clientset/clientset/scheme",
+    "pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
   ]
   revision = "0fe22c71c47604641d9aa352c785b7912c200562"
 
@@ -718,6 +721,12 @@
   revision = "0cf8f7e6ed1d2e3d47d02e3b6e559369af24d803"
 
 [[projects]]
+  branch = "master"
+  name = "k8s.io/kubectl"
+  packages = ["pkg/framework/openapi"]
+  revision = "33504685dff0c17970a6ca23d948dc35873ac619"
+
+[[projects]]
   name = "sigs.k8s.io/controller-runtime"
   packages = [
     "pkg/cache",
@@ -775,6 +784,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "708c2fb0e856101841160f6f7ce96c8994baebe05580ac0c44b7ec0226397b00"
+  inputs-digest = "d9e083e6fda6c8d39813b78c0431bb8b061d93e3b0c9e5744c58a3a606c29349"
   solver-name = "gps-cdcl"
   solver-version = 1

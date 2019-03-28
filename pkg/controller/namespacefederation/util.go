@@ -32,7 +32,13 @@ func InitializeFederatedClusterTemplates(federatedClusterTemplateFileName string
 		return err
 	}
 
-	federatedClusterTemplate, err = template.New("FederatedCluster").Parse(string(text))
+	federatedClusterTemplate = template.New("FederatedCluster").Funcs(template.FuncMap{
+		"parseNewLines": func(value string) string {
+			return strings.Replace(value, "\n", "\n\n", -1)
+		},
+	})
+
+	federatedClusterTemplate, err = federatedClusterTemplate.Parse(string(text))
 	if err != nil {
 		log.Error(err, "Error parsing template", "template", text)
 		return err

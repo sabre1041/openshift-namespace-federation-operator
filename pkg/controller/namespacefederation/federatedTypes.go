@@ -33,15 +33,18 @@ type SimpleTyepCRDPair struct {
 }
 
 func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *federationv1alpha1.NamespaceFederation) error {
-	addTypes, deleteDeleteTypes, err := r.getAddAndDeleteTypes(instance)
+	addTypes, deleteTypes, err := r.getAddAndDeleteTypes(instance)
 
 	if err != nil {
 		log.Error(err, "Error calculating add and delete types for instance", "instance", *instance)
 		return err
 	}
 
+	log.Info("types to be added: ", "types", addTypes)
+	log.Info("types to be removed: ", "types", deleteTypes)
+
 	//for delete types we delete only the federated type and not the CRD, because the CRD may be in use by some other namespaces
-	err = r.deleteFederatedTypes(instance, deleteDeleteTypes)
+	err = r.deleteFederatedTypes(instance, deleteTypes)
 	if err != nil {
 		log.Error(err, "Error deleting federated types for instance", "instance", *instance)
 		return err
@@ -60,6 +63,8 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *fe
 			return err
 		}
 	}
+
+	log.Info("processing template with: ", "pairs", pairs)
 
 	objs, err := processTemplateArray(pairs, federatedTypesTemplate)
 	if err != nil {
@@ -106,7 +111,7 @@ func (r *ReconcileNamespaceFederation) getAddAndDeleteTypes(instance *federation
 		return nil, nil, err
 	}
 	// let's calculate the add federatedType
-	addTypes := make([]metav1.TypeMeta, len(instance.Spec.FederatedTypes))
+	addTypes := []metav1.TypeMeta{}
 	for _, simpleType := range instance.Spec.FederatedTypes {
 		if !containsSimpleType(federatedTypeList, simpleType) {
 			addTypes = append(addTypes, simpleType)
@@ -114,7 +119,7 @@ func (r *ReconcileNamespaceFederation) getAddAndDeleteTypes(instance *federation
 	}
 
 	//let's calculate the delete federatedType
-	deleteTypes := make([]metav1.TypeMeta, len(federatedTypeList.Items))
+	deleteTypes := []metav1.TypeMeta{}
 	for _, federatedType := range federatedTypeList.Items {
 		if !containsFederatedType(instance.Spec.FederatedTypes, &federatedType) {
 			deleteTypes = append(deleteTypes, federatedType.TypeMeta)
@@ -156,35 +161,43 @@ func (r *ReconcileNamespaceFederation) generateCRDS(types []metav1.TypeMeta) ([]
 	if types != nil || len(types) != 0 {
 		for _, t := range types {
 
-			groupKind := t.GroupVersionKind().GroupKind().String()
-			nameParts := strings.SplitN(groupKind, ".", 2)
-			targetPluralName := federationv2v1alpha1.PluralName(nameParts[0])
+			// groupKind := t.GroupVersionKind().GroupKind().String()
+			// nameParts := strings.SplitN(groupKind, ".", 2)
+			// targetPluralName := federationv2v1alpha1.PluralName(nameParts[0])
 
-			if len(nameParts) > 1 {
-				groupKind = fmt.Sprintf("%v.%v", targetPluralName, nameParts[1])
-			} else {
-				groupKind = targetPluralName
-			}
+			// if len(nameParts) > 1 {
+			// 	groupKind = fmt.Sprintf("%v.%v", targetPluralName, nameParts[1])
+			// } else {
+			// 	groupKind = targetPluralName
+			// }
 
-			apiResource, err := LookupAPIResource(r.config, groupKind, "")
+			gvk := t.GroupVersionKind()
+			log.Info("original group version kind", "gvk", gvk)
+			gvk.Kind = federationv2v1alpha1.PluralName(gvk.Kind)
+			log.Info("plural group version kind", "gvk", gvk)
+			apiResource, err := LookupAPIResource(r.config, gvk.GroupKind().String(), "")
 			if err != nil {
 				fmt.Printf("Error! %v", err)
 			}
 
+			log.Info("found api resource", "apiResource", apiResource)
+
 			typeConfig := typeConfigForTarget(*apiResource)
+
+			log.Info("type config", "typeConfig", typeConfig)
 
 			accessor, err := newSchemaAccessor(r.config, *apiResource)
 			if err != nil {
 				return nil, errors.Wrap(err, "Error initializing validation schema accessor")
 			}
-
+			log.Info("accessor", "accessor", accessor)
 			shortNames := []string{}
 			for _, shortName := range apiResource.ShortNames {
 				shortNames = append(shortNames, fmt.Sprintf("f%s", shortName))
 			}
 
 			crd := federatedTypeCRD(typeConfig, accessor, shortNames)
-
+			log.Info("crd", "crd", crd)
 			simpleTypeCrdPairs = append(simpleTypeCrdPairs, SimpleTyepCRDPair{CRD: crd, SimpleType: t})
 
 		}

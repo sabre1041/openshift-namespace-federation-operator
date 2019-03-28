@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	federationv2v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -14,9 +13,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
 const remoteServiceAccountName string = "federation-controllee"
@@ -27,8 +28,8 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedClusters(instance 
 		log.Error(err, "Error calculating add and delete clusters for instance", "instance", *instance)
 		return err
 	}
-	log.Info("clusters to be added: ", "add cluster", addClusters, "len", len(addClusters))
-	log.Info("clusters to be deleted: ", "del cluster", deleteClusters)
+
+	log.Info("clusters to be deleted: ", "delClusters", deleteClusters)
 	// first we take care of deleting the deleteclusetr
 
 	for _, cluster := range deleteClusters {
@@ -38,7 +39,7 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedClusters(instance 
 	}
 
 	//then we add new clusters.
-
+	log.Info("clusters to be added: ", "addClusters", addClusters)
 	for _, cluster := range addClusters {
 		// retrieve the admin secret
 		log.Info("managing cluster: ", "cluster", cluster)
@@ -52,8 +53,10 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedClusters(instance 
 			return err
 		}
 		err = r.manageAddCluster(cluster.Name, instance, &adminSecret)
-		log.Error(err, "Unable to successfully add cluster", "cluster", cluster)
-		return err
+		if err != nil {
+			log.Error(err, "Unable to successfully add cluster", "cluster", cluster)
+			return err
+		}
 	}
 
 	return nil
@@ -81,13 +84,14 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 	}
 
 	// apply template in remote cluster
-	objs, err := processTemplateArray(nil, remoteFederatedClusterTemplate)
+
+	objs, err := processTemplateArray(instance, remoteFederatedClusterTemplate)
 	if err != nil {
 		log.Error(err, "error creating manifest from template")
 		return err
 	}
 	for _, obj := range *objs {
-		err = createOrUpdateResource(remoteClusterClient, instance, &obj)
+		err = createOrUpdateResource(remoteClusterClient, nil, &obj)
 		if err != nil {
 			log.Error(err, "unable to create/update object", "object", &obj)
 			return err
@@ -95,6 +99,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 	}
 
 	//apply template in local cluster
+	log.Info("rertrieve secrets", "remoteclusterclient", *remoteClusterClient)
 	remoteSecret, err := getSecretForRemoteServiceAccount(remoteClusterClient, cluster, instance)
 	if err != nil {
 		log.Error(err, "unable to retrieve remote secret for cluster", "cluster", cluster, "namespace", instance.GetNamespace())
@@ -105,7 +110,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 		Cluster:      cluster,
 		CaCRT:        string(remoteSecret.Data["ca.crt"]),
 		ServiceCaCRT: string(remoteSecret.Data["service-ca.crt"]),
-		Token:        string(remoteSecret.Data["token.crt"]),
+		Token:        string(remoteSecret.Data["token"]),
 		SecretName:   cluster + "-remote",
 	}
 
@@ -115,7 +120,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 		return err
 	}
 	for _, obj := range *objs {
-		err = createOrUpdateResource(remoteClusterClient, instance, &obj)
+		err = createOrUpdateResource(r, instance, &obj)
 		if err != nil {
 			log.Error(err, "unable to create/update object", "object", &obj)
 			return err
@@ -132,7 +137,7 @@ func getSecretForRemoteServiceAccount(remoteClusterClient *RemoteClusterClient, 
 		Name:      remoteServiceAccountName,
 	}, remoteServiceAccount)
 	if err != nil {
-		log.Error(err, "unable to retrieve remote service account", "service account", remoteServiceAccountName, "cluster", cluster)
+		log.Error(err, "unable to retrieve remote service account", "namespace", instance.GetNamespace(), "ServiceAccount", remoteServiceAccountName, "cluster", cluster)
 		return nil, err
 	}
 
@@ -281,21 +286,44 @@ func (r *ReconcileNamespaceFederation) getAdminClientForCluster(secret *corev1.S
 		return nil, fmt.Errorf("Secret contains no values")
 	}
 
-	for _, value := range secret.Data {
-		restConfig, err := clientcmd.RESTConfigFromKubeConfig(value)
+	var val []byte
+	var restConfig *rest.Config
 
-		if err != nil {
-			return nil, err
+	for key, value := range secret.Data {
+		if key == "kubeconfig" {
+			val = value
 		}
-
-		mgr, err := manager.New(restConfig, manager.Options{})
-		if err != nil {
-			log.Error(err, "")
-			os.Exit(1)
-		}
-		return &RemoteClusterClient{client: mgr.GetClient(), scheme: mgr.GetScheme()}, nil
-
 	}
 
-	return nil, nil
+	if val == nil {
+		return nil, errors.New("kubeconfig entry not found")
+	}
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(val)
+	if err != nil {
+		log.Error(err, "unable to create rest config")
+		return nil, err
+	}
+
+	mapper, err := apiutil.NewDiscoveryRESTMapper(restConfig)
+	if err != nil {
+		log.Error(err, "unable to create mapper")
+		return nil, err
+	}
+
+	c, err := client.New(restConfig, client.Options{
+		Scheme: scheme.Scheme,
+		Mapper: mapper,
+	})
+
+	if err != nil {
+		log.Error(err, "unable to create new client")
+		return nil, err
+	}
+	remoteClusterClient := RemoteClusterClient{
+		client: c,
+		scheme: scheme.Scheme,
+	}
+	return &remoteClusterClient, nil
+
 }

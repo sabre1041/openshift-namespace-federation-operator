@@ -17,6 +17,7 @@ import (
 	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller"
 	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/namespacefederation"
 	"github.com/spf13/pflag"
+	crdinstall "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -149,6 +150,8 @@ func main() {
 		log.Error(err, "")
 		os.Exit(1)
 	}
+
+	crdinstall.Install(mgr.GetScheme())
 
 	// Setup all Controllers
 	if err := controller.AddToManager(mgr); err != nil {

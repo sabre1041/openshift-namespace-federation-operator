@@ -2,10 +2,10 @@
 - apiVersion: core.federation.k8s.io/v1alpha1
   kind: FederatedTypeConfig
   metadata:
-    name: {{ getName .simpleType }}
+    name: {{ getName .SimpleType }}
   spec:
     comparisonField: ResourceVersion
-    namespaced: {{ namespaced .CRD.Spec.Scope }}
+    namespaced: {{ namespaced .CRD }}
     override:
       kind: {{ .CRD.TypeMeta.Kind }}Override
     # overridePaths:
@@ -14,11 +14,11 @@
       kind: {{ .CRD.TypeMeta.Kind }}Placement
     propagationEnabled: true
     target:
-      kind: {{ .simpleType.Kind }}
-      group: {{ getGroup .simpleType.APIVersion }}
-      version: {{ getVersion .simpleType.APIVersion }}
+      kind: {{ .SimpleType.Kind }}
+      group: {{ getGroup .SimpleType.APIVersion }}
+      version: {{ getVersion .SimpleType.APIVersion }}
     template:
-      group: {{ .CRD.TypeMeta.Group }}
-      kind: {{ .CRD.TypeMeta.Kind }}
-      version: {{ .CRD.TypeMeta.Version }}
+      group: {{ .CRD.GroupVersionKind.Group }}
+      kind: {{ .CRD.GroupVersionKind.Kind }}
+      version: {{ .CRD.GroupVersionKind.Version }}
 {{ end }}    
