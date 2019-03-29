@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/template"
 
+	federationv2v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
 	extensionv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -85,19 +86,18 @@ func InitializeFederatedTypesTemplates(federatedTypesTemplateFileName string) er
 	}
 
 	federatedTypesTemplate = template.New("FederatedTypes").Funcs(template.FuncMap{
-		"getName": func(simpleType metav1.TypeMeta) string {
-			lowerCasePlural := strings.ToLower(simpleType.Kind) + "s"
-			group := simpleType.APIVersion[:strings.Index(simpleType.APIVersion, "/")]
-			return lowerCasePlural + "." + group
+		"getLongName": func(simpleType metav1.TypeMeta) string {
+			if simpleType.GroupVersionKind().Group != "" {
+				return federationv2v1alpha1.PluralName(simpleType.Kind) + "." + simpleType.GroupVersionKind().Group
+			} else {
+				return federationv2v1alpha1.PluralName(simpleType.Kind)
+			}
 		},
-		"getGroup": func(apiVersion string) string {
-			return apiVersion[:strings.Index(apiVersion, "/")]
-		},
-		"getVersion": func(apiVersion string) string {
-			return apiVersion[strings.Index(apiVersion, "/"):]
+		"getShortName": func(simpleType metav1.TypeMeta) string {
+			return federationv2v1alpha1.PluralName(simpleType.Kind)
 		},
 		"namespaced": func(crd extensionv1beta1.CustomResourceDefinition) bool {
-			return crd.Spec.Scope == "namespace"
+			return crd.Spec.Scope == "Namespaced"
 		},
 	})
 

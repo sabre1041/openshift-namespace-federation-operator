@@ -56,16 +56,17 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *fe
 		log.Error(err, "Error generating crd for addTypes", "addTyoes", addTypes)
 		return err
 	}
-	for _, pair := range pairs {
+	for i, pair := range pairs {
 		err = createOrUpdateResource(r, nil, pair.CRD)
 		if err != nil {
 			log.Error(err, "unable to create/update object", "object", &pair.CRD)
 			return err
 		}
+		pairs[i].CRD.APIVersion = "apiextensions.k8s.io/v1beta1"
+		pairs[i].CRD.Kind = "CustomResourceDefinition"
 	}
 
 	log.Info("processing template with: ", "pairs", pairs)
-
 	objs, err := processTemplateArray(pairs, federatedTypesTemplate)
 	if err != nil {
 		log.Error(err, "error creating manifest from template")
@@ -110,6 +111,14 @@ func (r *ReconcileNamespaceFederation) getAddAndDeleteTypes(instance *federation
 		log.Error(err, "Error listing federated types in namespace", "namespace", instance.GetNamespace())
 		return nil, nil, err
 	}
+	// namespaces federatedTypeConfig has to always be there, so lets remove it from the list.
+	federatedTypes := []federationv2v1alpha1.FederatedTypeConfig{}
+	for _, federatedType := range federatedTypeList.Items {
+		if federatedType.Name != "namespaces" {
+			federatedTypes = append(federatedTypes, federatedType)
+		}
+	}
+	federatedTypeList.Items = federatedTypes
 	// let's calculate the add federatedType
 	addTypes := []metav1.TypeMeta{}
 	for _, simpleType := range instance.Spec.FederatedTypes {

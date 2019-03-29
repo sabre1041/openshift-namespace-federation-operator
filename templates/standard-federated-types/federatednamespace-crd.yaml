@@ -1,0 +1,91 @@
+
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: federatednamespaces.types.federation.k8s.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .metadata.creationTimestamp
+    description: |-
+      CreationTimestamp is a timestamp representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations. Clients may not set this value. It is represented in RFC3339 form and is in UTC.
+
+      Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
+    name: Age
+    type: date
+  group: types.federation.k8s.io
+  names:
+    kind: FederatedNamespace
+    listKind: FederatedNamespaceList
+    plural: federatednamespaces
+    shortNames:
+    - fns
+    singular: federatednamespace
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            overrides:
+              items:
+                properties:
+                  clusterName:
+                    type: string
+                  clusterOverrides:
+                    items:
+                      properties:
+                        path:
+                          type: string
+                        value:
+                          anyOf:
+                          - type: string
+                          - type: integer
+                          - type: boolean
+                          - type: object
+                          - type: array
+                      type: object
+                    type: array
+                type: object
+              type: array
+            placement:
+              properties:
+                clusterNames:
+                  items:
+                    type: string
+                  type: array
+                clusterSelector:
+                  properties:
+                    matchExpressions:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          operator:
+                            type: string
+                          values:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - key
+                        - operator
+                        type: object
+                      type: array
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
+              type: object
+          type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true

@@ -18,6 +18,7 @@
     ca.crt: '{{ parseNewLines .CaCRT }}'
     namespace: {{ .Namespace }}
     service-ca.crt: '{{ parseNewLines .ServiceCaCRT }}'
-    token: {{ .Token }}
+    token: {{ .Token }} 
+
 
 
