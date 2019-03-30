@@ -4,15 +4,13 @@ import (
 	"context"
 
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
-
+	util "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/namespacefederation"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -51,17 +49,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner MultipleNamespaceFederation
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &federationv1alpha1.MultipleNamespaceFederation{},
-	})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -100,54 +87,48 @@ func (r *ReconcileMultipleNamespaceFederation) Reconcile(request reconcile.Reque
 		return reconcile.Result{}, err
 	}
 
-	// Define a new Pod object
-	pod := newPodForCR(instance)
-
-	// Set MultipleNamespaceFederation instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
+	// get all the namespace for which this CR apply
+	namespaces := &corev1.NamespaceList{}
+	selector, err := metav1.LabelSelectorAsSelector(instance.Spec.NamespaceSelector)
+	if err != nil {
+		log.Error(err, "unable to create label selector from namespace selector", "selector", instance.Spec.NamespaceSelector)
 		return reconcile.Result{}, err
 	}
-
-	// Check if this Pod already exists
-	found := &corev1.Pod{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-		err = r.client.Create(context.TODO(), pod)
+	err = r.client.List(context.TODO(), &client.ListOptions{
+		LabelSelector: selector,
+	}, namespaces)
+	if err != nil {
+		log.Error(err, "unable to retrieve list of selected namespaces", "selector", selector)
+		return reconcile.Result{}, err
+	}
+	log.Info("selected namespaces", "namespaces", namespaces.Items)
+	for _, namespace := range namespaces.Items {
+		err = util.CreateOrUpdateResource(r, instance, GetNamespaceFederation(instance, &namespace))
 		if err != nil {
-			return reconcile.Result{}, err
+			log.Error(err, "unable to create nanemspacefederation", "multiplenamespacefederation", instance, "namespace", namespace)
 		}
-
-		// Pod created successfully - don't requeue
-		return reconcile.Result{}, nil
-	} else if err != nil {
-		return reconcile.Result{}, err
 	}
 
-	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
 	return reconcile.Result{}, nil
 }
 
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *federationv1alpha1.MultipleNamespaceFederation) *corev1.Pod {
-	labels := map[string]string{
-		"app": cr.Name,
-	}
-	return &corev1.Pod{
+func GetNamespaceFederation(instance *federationv1alpha1.MultipleNamespaceFederation, namespace *corev1.Namespace) *federationv1alpha1.NamespaceFederation {
+	return &federationv1alpha1.NamespaceFederation{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
-			Namespace: cr.Namespace,
-			Labels:    labels,
+			Name:      instance.GetName(),
+			Namespace: namespace.GetName(),
 		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
-			},
+		Spec: federationv1alpha1.NamespaceFederationSpec{
+			Clusters:       instance.Spec.NamespaceFederationSpec.Clusters,
+			FederatedTypes: instance.Spec.NamespaceFederationSpec.FederatedTypes,
 		},
 	}
+}
+
+func (r *ReconcileMultipleNamespaceFederation) GetClient() client.Client {
+	return r.client
+}
+
+func (r *ReconcileMultipleNamespaceFederation) GetScheme() *runtime.Scheme {
+	return r.scheme
 }

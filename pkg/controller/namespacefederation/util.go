@@ -10,7 +10,6 @@ import (
 	"text/template"
 
 	federationv2v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
 	extensionv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -156,14 +155,14 @@ func processTemplateArray(data interface{}, template *template.Template) (*[]uns
 	return &obj, err
 }
 
-func createOrUpdateResource(r RuntimeClient, instance *federationv1alpha1.NamespaceFederation, obj metav1.Object) error {
+func CreateOrUpdateResource(r RuntimeClient, owner metav1.Object, obj metav1.Object) error {
 	runtimeObj, ok := (obj).(runtime.Object)
 	if !ok {
 		return fmt.Errorf("is not a %T a runtime.Object", obj)
 	}
 
-	if instance != nil {
-		_ = controllerutil.SetControllerReference(instance, obj, r.GetScheme())
+	if owner != nil {
+		_ = controllerutil.SetControllerReference(owner, obj, r.GetScheme())
 	}
 
 	obj2 := unstructured.Unstructured{}

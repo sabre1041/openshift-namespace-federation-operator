@@ -23,10 +23,27 @@ spec:
           type: object
         spec:
           properties:
-            clusters:
-              items:
-                type: string
-              type: array
+            namespaceFederationSpec:
+              properties:
+                clusters:
+                  items:
+                    properties:
+                      adminSecretRef:
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        type: object
+                      name:
+                        type: string
+                    type: object
+                  type: array
+                federatedTypes:
+                  items:
+                    type: object
+                  type: array
+              type: object
             namespaceSelector:
               type: object
           required:

@@ -91,7 +91,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 		return err
 	}
 	for _, obj := range *objs {
-		err = createOrUpdateResource(remoteClusterClient, nil, &obj)
+		err = CreateOrUpdateResource(remoteClusterClient, nil, &obj)
 		if err != nil {
 			log.Error(err, "unable to create/update object", "object", &obj)
 			return err
@@ -120,7 +120,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 		return err
 	}
 	for _, obj := range *objs {
-		err = createOrUpdateResource(r, instance, &obj)
+		err = CreateOrUpdateResource(r, instance, &obj)
 		if err != nil {
 			log.Error(err, "unable to create/update object", "object", &obj)
 			return err

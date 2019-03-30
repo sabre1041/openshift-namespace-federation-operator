@@ -80,3 +80,29 @@ you can create such a secret as follows:
 oc create secret generic admin-raffa2 --from-file=./test/kubeconfig -n kube-multicluster-public
 oc apply -f ./test/cluster.yaml -n kube-multicluster-public
 ```
+
+# Federating Multiple Namespaces
+
+You can also federate multiple namespaces at the same time. In order to do that a different CRD is provided. Here is an example:
+
+```yaml
+apiVersion: federation.raffa.systems/v1alpha1
+kind: MultipleNamespaceFederation
+metadata:
+  name: test-multiplenamespacefederation
+spec:
+  namespaceFederationSpec:
+    clusters:
+    - name: raffa2
+      adminSecretRef:
+        namespace: kube-multicluster-public
+        name: admin-raffa2
+    federatedTypes:  
+    - kind: Route
+      apiVersion: route.openshift.io/v1
+  namespaceSelector:
+    matchLabels:
+      federation: raffa
+```
+
+When this CR is created the controller will create the corresponding NamespaceFederation CRD in the selected namespaces.
