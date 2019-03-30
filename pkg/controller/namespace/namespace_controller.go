@@ -108,7 +108,10 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 
 	for _, multipleNamespaceFederation := range multipleNamespaceFederations {
 		err = util.CreateOrUpdateResource(r, &multipleNamespaceFederation, multiplenamespacefederation.GetNamespaceFederation(&multipleNamespaceFederation, instance))
-		log.Error(err, "unable to create nanemspacefederation", "multiplenamespacefederation", instance, "namespace", instance)
+		if err != nil {
+			log.Error(err, "unable to create nanemspacefederation", "multiplenamespacefederation", multipleNamespaceFederation, "namespace", instance, "namespacefederation", multiplenamespacefederation.GetNamespaceFederation(&multipleNamespaceFederation, instance))
+			return reconcile.Result{}, err
+		}
 	}
 
 	return reconcile.Result{}, nil

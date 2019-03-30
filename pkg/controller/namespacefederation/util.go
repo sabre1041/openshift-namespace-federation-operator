@@ -178,11 +178,24 @@ func CreateOrUpdateResource(r RuntimeClient, owner metav1.Object, obj metav1.Obj
 		Name:      obj.GetName(),
 	}, &obj2)
 
-	if err != nil {
-		return r.GetClient().Create(context.TODO(), runtimeObj)
+	if apierrors.IsNotFound(err) {
+		err = r.GetClient().Create(context.TODO(), runtimeObj)
+		if err != nil {
+			log.Error(err, "unable to create object", "object", runtimeObj)
+		}
+		return err
 	}
-	obj.SetResourceVersion(obj2.GetResourceVersion())
-	return r.GetClient().Update(context.TODO(), runtimeObj)
+	if err == nil {
+		obj.SetResourceVersion(obj2.GetResourceVersion())
+		err = r.GetClient().Update(context.TODO(), runtimeObj)
+		if err != nil {
+			log.Error(err, "unable to update object", "object", runtimeObj)
+		}
+		return err
+
+	}
+	log.Error(err, "unable to lookup object", "object", runtimeObj)
+	return err
 }
 
 func deleteResource(r RuntimeClient, obj metav1.Object) error {

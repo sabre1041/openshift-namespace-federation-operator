@@ -105,7 +105,7 @@ func (r *ReconcileMultipleNamespaceFederation) Reconcile(request reconcile.Reque
 	for _, namespace := range namespaces.Items {
 		err = util.CreateOrUpdateResource(r, instance, GetNamespaceFederation(instance, &namespace))
 		if err != nil {
-			log.Error(err, "unable to create nanemspacefederation", "multiplenamespacefederation", instance, "namespace", namespace)
+			log.Error(err, "unable to create namespacefederation", "multiplenamespacefederation", instance, "namespace", namespace, "namespacefederation", GetNamespaceFederation(instance, &namespace))
 		}
 	}
 
@@ -114,6 +114,10 @@ func (r *ReconcileMultipleNamespaceFederation) Reconcile(request reconcile.Reque
 
 func GetNamespaceFederation(instance *federationv1alpha1.MultipleNamespaceFederation, namespace *corev1.Namespace) *federationv1alpha1.NamespaceFederation {
 	return &federationv1alpha1.NamespaceFederation{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NamespaceFederation",
+			APIVersion: "federation.raffa.systems/v1alpha1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.GetName(),
 			Namespace: namespace.GetName(),
