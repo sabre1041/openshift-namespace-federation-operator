@@ -20,6 +20,21 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/alecthomas/template"
+  packages = [
+    ".",
+    "parse"
+  ]
+  revision = "a0175ee3bccc567396460bf5acd36800cb10c49c"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/alecthomas/units"
+  packages = ["."]
+  revision = "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
+
+[[projects]]
   name = "github.com/appscode/jsonpatch"
   packages = ["."]
   revision = "7c0e3b262f30165a8ec3d0b4c6059fd92703bfb2"
@@ -203,6 +218,12 @@
   version = "v1.1.6"
 
 [[projects]]
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
+
+[[projects]]
   name = "github.com/kubernetes-sigs/federation-v2"
   packages = [
     "pkg/apis/core/common",
@@ -303,6 +324,7 @@
   packages = [
     "expfmt",
     "internal/bitbucket.org/ww/goautoneg",
+    "log",
     "model"
   ]
   revision = "cfeb6f9992ffa54aaa4f2170ade4067ee478b250"
@@ -329,6 +351,12 @@
   ]
   revision = "1cf9852c553c5b7da2d5a4a091129a7822fed0c9"
   version = "v1.2.2"
+
+[[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "dae0fa8d5b0c810a8ab733fbd5510c7cae84eca4"
+  version = "v1.4.0"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -406,7 +434,9 @@
   name = "golang.org/x/sys"
   packages = [
     "unix",
-    "windows"
+    "windows",
+    "windows/registry",
+    "windows/svc/eventlog"
   ]
   revision = "6c81ef8f67ca3f42fc9cd71dfbd5f35b0c4b5771"
 
@@ -475,6 +505,12 @@
   version = "v1.4.0"
 
 [[projects]]
+  name = "gopkg.in/alecthomas/kingpin.v2"
+  packages = ["."]
+  revision = "947dcec5ba9c011838740e680966fd7087a71d0d"
+  version = "v2.2.6"
+
+[[projects]]
   name = "gopkg.in/inf.v0"
   packages = ["."]
   revision = "d2d2541c53f18d2a059457998ce2876cc8e67cbf"
@@ -529,6 +565,7 @@
   name = "k8s.io/apiextensions-apiserver"
   packages = [
     "pkg/apis/apiextensions",
+    "pkg/apis/apiextensions/install",
     "pkg/apis/apiextensions/v1beta1",
     "pkg/client/clientset/clientset/scheme",
     "pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
@@ -784,6 +821,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d9e083e6fda6c8d39813b78c0431bb8b061d93e3b0c9e5744c58a3a606c29349"
+  inputs-digest = "3ac34fc34273205397c3a198eeba3a06dc2e510d2ecd388c42cd28eca392b7e7"
   solver-name = "gps-cdcl"
   solver-version = 1

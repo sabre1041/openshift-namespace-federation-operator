@@ -4,11 +4,9 @@ import (
 	"context"
 
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
-
+	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/util"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -32,7 +30,10 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileNamespaceFederation{client: mgr.GetClient(), scheme: mgr.GetScheme(), config: mgr.GetConfig()}
+	return &ReconcileNamespaceFederation{
+		ReconcilerBase: util.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme()),
+		config:         mgr.GetConfig(),
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -64,26 +65,12 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 var _ reconcile.Reconciler = &ReconcileNamespaceFederation{}
 
-type RuntimeClient interface {
-	GetClient() client.Client
-	GetScheme() *runtime.Scheme
-}
-
 // ReconcileNamespaceFederation reconciles a NamespaceFederation object
 type ReconcileNamespaceFederation struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	util.ReconcilerBase
 	config *rest.Config
-}
-
-func (r *ReconcileNamespaceFederation) GetClient() client.Client {
-	return r.client
-}
-
-func (r *ReconcileNamespaceFederation) GetScheme() *runtime.Scheme {
-	return r.scheme
 }
 
 func (r *ReconcileNamespaceFederation) GetConfig() *rest.Config {
@@ -103,7 +90,7 @@ func (r *ReconcileNamespaceFederation) Reconcile(request reconcile.Request) (rec
 
 	// Fetch the NamespaceFederation instance
 	instance := &federationv1alpha1.NamespaceFederation{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.GetClient().Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.

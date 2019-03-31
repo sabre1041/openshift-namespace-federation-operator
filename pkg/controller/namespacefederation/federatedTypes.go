@@ -57,7 +57,7 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *fe
 		return err
 	}
 	for i, pair := range pairs {
-		err = CreateOrUpdateResource(r, nil, pair.CRD)
+		err = r.CreateOrUpdateResource(nil, pair.CRD)
 		if err != nil {
 			log.Error(err, "unable to create/update object", "object", &pair.CRD)
 			return err
@@ -73,7 +73,7 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *fe
 	}
 	for _, obj := range *objs {
 		obj.SetNamespace(instance.GetNamespace())
-		err = CreateOrUpdateResource(r, instance, &obj)
+		err = r.CreateOrUpdateResource(instance, &obj)
 		if err != nil {
 			log.Error(err, "unable to create/update object", "object", &obj)
 			return err
@@ -87,7 +87,7 @@ func (r *ReconcileNamespaceFederation) deleteFederatedTypes(instance *federation
 	for _, simpleType := range deleteTypes {
 		federatedType := getFederatedType(simpleType)
 		federatedType.ObjectMeta.Namespace = instance.GetNamespace()
-		err := deleteResource(r, &federatedType)
+		err := r.DeleteResource(&federatedType)
 		if err != nil {
 			log.Error(err, "Unable to delete federated type", "type", federatedType)
 		}
@@ -105,7 +105,7 @@ func getFederatedType(simpleType metav1.TypeMeta) federationv2v1alpha1.Federated
 
 func (r *ReconcileNamespaceFederation) getAddAndDeleteTypes(instance *federationv1alpha1.NamespaceFederation) ([]metav1.TypeMeta, []metav1.TypeMeta, error) {
 	federatedTypeList := &federationv2v1alpha1.FederatedTypeConfigList{}
-	err := r.client.List(context.TODO(), &client.ListOptions{Namespace: instance.GetNamespace()}, federatedTypeList)
+	err := r.GetClient().List(context.TODO(), &client.ListOptions{Namespace: instance.GetNamespace()}, federatedTypeList)
 	if err != nil {
 		log.Error(err, "Error listing federated types in namespace", "namespace", instance.GetNamespace())
 		return nil, nil, err

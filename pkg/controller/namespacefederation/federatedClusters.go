@@ -8,10 +8,10 @@ import (
 
 	federationv2v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
+	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -44,7 +44,7 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedClusters(instance 
 		// retrieve the admin secret
 		log.Info("managing cluster: ", "cluster", cluster)
 		adminSecret := corev1.Secret{}
-		err := r.client.Get(context.TODO(), types.NamespacedName{
+		err := r.GetClient().Get(context.TODO(), types.NamespacedName{
 			Namespace: cluster.AdminSecretRef.Namespace,
 			Name:      cluster.AdminSecretRef.Name,
 		}, &adminSecret)
@@ -77,7 +77,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 		},
 	}
 
-	err = createIfNotExists(remoteClusterClient, &namespace)
+	err = remoteClusterClient.CreateIfNotExists(&namespace)
 	if err != nil {
 		log.Error(err, "Error creating remote namespace for cluster", "cluster", cluster, "namespace", namespace.GetName())
 		return err
@@ -91,7 +91,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 		return err
 	}
 	for _, obj := range *objs {
-		err = CreateOrUpdateResource(remoteClusterClient, nil, &obj)
+		err = remoteClusterClient.CreateOrUpdateResource(nil, &obj)
 		if err != nil {
 			log.Error(err, "unable to create/update object", "object", &obj)
 			return err
@@ -120,7 +120,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 		return err
 	}
 	for _, obj := range *objs {
-		err = CreateOrUpdateResource(r, instance, &obj)
+		err = r.CreateOrUpdateResource(instance, &obj)
 		if err != nil {
 			log.Error(err, "unable to create/update object", "object", &obj)
 			return err
@@ -130,9 +130,9 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 	return nil
 }
 
-func getSecretForRemoteServiceAccount(remoteClusterClient *RemoteClusterClient, cluster string, instance *federationv1alpha1.NamespaceFederation) (*corev1.Secret, error) {
+func getSecretForRemoteServiceAccount(remoteClusterClient *util.ReconcilerBase, cluster string, instance *federationv1alpha1.NamespaceFederation) (*corev1.Secret, error) {
 	remoteServiceAccount := &corev1.ServiceAccount{}
-	err := remoteClusterClient.client.Get(context.TODO(), types.NamespacedName{
+	err := remoteClusterClient.GetClient().Get(context.TODO(), types.NamespacedName{
 		Namespace: instance.GetNamespace(),
 		Name:      remoteServiceAccountName,
 	}, remoteServiceAccount)
@@ -154,7 +154,7 @@ func getSecretForRemoteServiceAccount(remoteClusterClient *RemoteClusterClient, 
 		return nil, err
 	}
 	remoteTokenSecret := &corev1.Secret{}
-	err = remoteClusterClient.client.Get(context.TODO(), types.NamespacedName{
+	err = remoteClusterClient.GetClient().Get(context.TODO(), types.NamespacedName{
 		Namespace: instance.GetNamespace(),
 		Name:      remoteSecretName,
 	}, remoteTokenSecret)
@@ -179,7 +179,7 @@ func (r *ReconcileNamespaceFederation) manageDeleteCluster(cluster string, insta
 
 	// retrieve the federated cluster to know what the associated secret is
 	federatedCluster := &federationv2v1alpha1.FederatedCluster{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{
+	err := r.GetClient().Get(context.TODO(), types.NamespacedName{
 		Namespace: instance.GetNamespace(),
 		Name:      cluster,
 	}, federatedCluster)
@@ -209,7 +209,7 @@ func (r *ReconcileNamespaceFederation) manageDeleteCluster(cluster string, insta
 		return err
 	}
 	for _, obj := range *objs {
-		err = deleteResource(r, &obj)
+		err = r.DeleteResource(&obj)
 		if err != nil {
 			log.Error(err, "unable to delete object", "object", &obj)
 			return err
@@ -222,7 +222,7 @@ func (r *ReconcileNamespaceFederation) getAddAndDeleteCluster(instance *federati
 	//we assume that if a federated cluster object exists it means that it has been correclty federated
 
 	federatedClusterList := &federationv2v1alpha1.FederatedClusterList{}
-	err := r.client.List(context.TODO(), &client.ListOptions{Namespace: instance.GetNamespace()}, federatedClusterList)
+	err := r.GetClient().List(context.TODO(), &client.ListOptions{Namespace: instance.GetNamespace()}, federatedClusterList)
 	if err != nil {
 		log.Error(err, "Error listing federatedclusters in namespace", "namespace", instance.GetNamespace())
 		return nil, nil, err
@@ -265,22 +265,7 @@ func containsFederatedCluster(clusters []federationv1alpha1.Cluster, federatedCl
 	return false
 }
 
-type RemoteClusterClient struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
-}
-
-func (r *RemoteClusterClient) GetClient() client.Client {
-	return r.client
-}
-
-func (r *RemoteClusterClient) GetScheme() *runtime.Scheme {
-	return r.scheme
-}
-
-func (r *ReconcileNamespaceFederation) getAdminClientForCluster(secret *corev1.Secret) (*RemoteClusterClient, error) {
+func (r *ReconcileNamespaceFederation) getAdminClientForCluster(secret *corev1.Secret) (*util.ReconcilerBase, error) {
 
 	if len(secret.Data) == 0 {
 		return nil, fmt.Errorf("Secret contains no values")
@@ -320,10 +305,8 @@ func (r *ReconcileNamespaceFederation) getAdminClientForCluster(secret *corev1.S
 		log.Error(err, "unable to create new client")
 		return nil, err
 	}
-	remoteClusterClient := RemoteClusterClient{
-		client: c,
-		scheme: scheme.Scheme,
-	}
+	remoteClusterClient := util.NewReconcilerBase(c, scheme.Scheme)
+
 	return &remoteClusterClient, nil
 
 }

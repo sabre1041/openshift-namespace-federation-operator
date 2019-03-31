@@ -12,7 +12,7 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederationControlPlane(inst
 		return err
 	}
 	for _, obj := range *objs {
-		err = CreateOrUpdateResource(r, instance, &obj)
+		err = r.CreateOrUpdateResource(instance, &obj)
 		if err != nil {
 			log.Error(err, "unable to create object", "object", &obj)
 			return err

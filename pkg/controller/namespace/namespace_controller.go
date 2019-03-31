@@ -5,12 +5,11 @@ import (
 
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
 	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/multiplenamespacefederation"
-	util "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/namespacefederation"
+	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -35,7 +34,9 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileNamespace{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileNamespace{
+		ReconcilerBase: util.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme()),
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -71,8 +72,7 @@ var _ reconcile.Reconciler = &ReconcileNamespace{}
 type ReconcileNamespace struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	util.ReconcilerBase
 }
 
 // Reconcile reads that state of the cluster for a Namespace object and makes changes based on the state read
@@ -88,7 +88,7 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 
 	// Fetch the Namespace instance
 	instance := &corev1.Namespace{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.GetClient().Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -107,7 +107,7 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	for _, multipleNamespaceFederation := range multipleNamespaceFederations {
-		err = util.CreateOrUpdateResource(r, &multipleNamespaceFederation, multiplenamespacefederation.GetNamespaceFederation(&multipleNamespaceFederation, instance))
+		err = r.CreateOrUpdateResource(&multipleNamespaceFederation, multiplenamespacefederation.GetNamespaceFederation(&multipleNamespaceFederation, instance))
 		if err != nil {
 			log.Error(err, "unable to create nanemspacefederation", "multiplenamespacefederation", multipleNamespaceFederation, "namespace", instance, "namespacefederation", multiplenamespacefederation.GetNamespaceFederation(&multipleNamespaceFederation, instance))
 			return reconcile.Result{}, err
@@ -119,7 +119,7 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 
 func (r *ReconcileNamespace) findApplicableMultipleNamespaceFederation(instance *corev1.Namespace) ([]federationv1alpha1.MultipleNamespaceFederation, error) {
 	multipleNamespaceFederationList := &federationv1alpha1.MultipleNamespaceFederationList{}
-	err := r.client.List(context.TODO(), &client.ListOptions{}, multipleNamespaceFederationList)
+	err := r.GetClient().List(context.TODO(), &client.ListOptions{}, multipleNamespaceFederationList)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return []federationv1alpha1.MultipleNamespaceFederation{}, nil
@@ -141,12 +141,4 @@ func (r *ReconcileNamespace) findApplicableMultipleNamespaceFederation(instance 
 	}
 
 	return applicableMultipleNamespaceFederationList, nil
-}
-
-func (r *ReconcileNamespace) GetClient() client.Client {
-	return r.client
-}
-
-func (r *ReconcileNamespace) GetScheme() *runtime.Scheme {
-	return r.scheme
 }
