@@ -37,7 +37,8 @@ Create the needed CRDs
 ```shell
 oc apply -f crds/cluster-registry-crds.yaml
 oc apply -f crds/federationV2-crds.yaml
-oc apply -f deploy/crds/federation_v1alpha1_namespacefederation_cr.yaml
+oc apply -f deploy/crds/federation_v1alpha1_namespacefederation_crd.yaml
+oc apply -f deploy/crds/federation_v1alpha1_multiplenamespacefederation_crd.yaml
 ```
 
 Create the cluster registry namespace (here you will have to create refrences to clusters you want to federate)
@@ -48,6 +49,17 @@ oc create namespace kube-multicluster-public
 
 deploy the operator
 //TODO
+while this is completed, you can run the operator with this:
+
+```shell
+export FEDERATION_CONTROLLER_TEMPLATE=$GOPATH/src/github.com/raffaelespazzoli/openshift-namespace-federation-operator/templates/federation-controller/federation-controller.yaml
+export FEDERATED_CLUSTER_TEMPLATE=$GOPATH/src/github.com/raffaelespazzoli/openshift-namespace-federation-operator/templates/federated-cluster/federated-cluster.yaml
+export REMOTE_FEDERATED_CLUSTER_TEMPLATE=$GOPATH/src/github.com/raffaelespazzoli/openshift-namespace-federation-operator/templates/remote-federated-cluster/remote-federated-cluster.yaml
+export FEDERATED_TYPES_TEMPLATE=$GOPATH/src/github.com/raffaelespazzoli/openshift-namespace-federation-operator/templates/federated-types/federated-types.yaml
+export WATCH_NAMESPACE=""
+export OPERATOR_NAME=kube-gitops-operator
+go run "/home/rspazzol/go/src/github.com/raffaelespazzoli/openshift-namespace-federation-operator/cmd/manager/main.go"
+```
 
 ## Prequisite to federating a cluster
 

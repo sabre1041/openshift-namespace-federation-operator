@@ -15,6 +15,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+type SchemaAwareClient interface {
+	GetClient() client.Client
+	GetScheme() *runtime.Scheme
+	CreateOrUpdateResource(owner metav1.Object, obj metav1.Object) error
+	DeleteResource(obj metav1.Object) error
+	CreateIfNotExists(obj metav1.Object) error
+}
+
 type ReconcilerBase struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver

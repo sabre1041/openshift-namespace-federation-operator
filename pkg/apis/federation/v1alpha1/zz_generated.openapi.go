@@ -82,12 +82,16 @@ func schema_pkg_apis_federation_v1alpha1_MultipleNamespaceFederationSpec(ref com
 							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
 						},
 					},
+					"globalLoadBalancer": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1.GlobalLoadBalancer"),
+						},
+					},
 				},
-				Required: []string{"namespaceSelector"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1.NamespaceFederationSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+			"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1.GlobalLoadBalancer", "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1.NamespaceFederationSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
 	}
 }
 

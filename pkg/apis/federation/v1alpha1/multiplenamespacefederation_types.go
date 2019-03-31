@@ -14,7 +14,18 @@ type MultipleNamespaceFederationSpec struct {
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
 	NamespaceFederationSpec NamespaceFederationSpec `json:"namespaceFederationSpec,omitempty"`
-	NamespaceSelector       *metav1.LabelSelector   `json:"namespaceSelector"`
+	NamespaceSelector       *metav1.LabelSelector   `json:"namespaceSelector,omitempty"`
+	GlobalLoadBalancer      GlobalLoadBalancer      `json:"globalLoadBalancer,omitempty"`
+}
+
+type GlobalLoadBalancer struct {
+	// accepted values are cloud-provider and self-hosted
+	// +kubebuilder:validation:Enum=Cloud-Provider,Self-Hosted
+	GlobalLoadBalancerType string `json:"type,omitempty"`
+	// +kubebuilder:validation:Pattern=(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]
+	Domains []string `json:"domains,omitempty"`
+	// +kubebuilder:validation:UniqueItems=false
+	ExternalDNSArgs []string `json:"externalDNSArgs,omitempty"`
 }
 
 // MultipleNamespaceFederationStatus defines the observed state of MultipleNamespaceFederation

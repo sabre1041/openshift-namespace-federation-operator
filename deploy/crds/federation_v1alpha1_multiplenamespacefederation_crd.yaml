@@ -23,6 +23,24 @@ spec:
           type: object
         spec:
           properties:
+            globalLoadBalancer:
+              properties:
+                domains:
+                  items:
+                    pattern: (?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]
+                    type: string
+                  pattern: (?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]
+                  type: array
+                externalDNSArgs:
+                  items:
+                    type: string
+                  type: array
+                type:
+                  enum:
+                  - Cloud-Provider
+                  - Self-Hosted
+                  type: string
+              type: object
             namespaceFederationSpec:
               properties:
                 clusters:
@@ -46,8 +64,6 @@ spec:
               type: object
             namespaceSelector:
               type: object
-          required:
-          - namespaceSelector
           type: object
         status:
           type: object
