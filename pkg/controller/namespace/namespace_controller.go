@@ -122,9 +122,6 @@ func (r *ReconcileNamespace) findApplicableMultipleNamespaceFederation(instance 
 	err := r.client.List(context.TODO(), &client.ListOptions{}, multipleNamespaceFederationList)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
 			return []federationv1alpha1.MultipleNamespaceFederation{}, nil
 		}
 		// Error reading the object - requeue the request.

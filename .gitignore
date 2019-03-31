@@ -78,4 +78,5 @@ tags
 
 vendor/
 notes.txt
-test/
+
+test/kubeconfig

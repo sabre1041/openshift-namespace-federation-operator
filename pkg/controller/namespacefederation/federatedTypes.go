@@ -66,7 +66,6 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *fe
 		pairs[i].CRD.Kind = "CustomResourceDefinition"
 	}
 
-	log.Info("processing template with: ", "pairs", pairs)
 	objs, err := processTemplateArray(pairs, federatedTypesTemplate)
 	if err != nil {
 		log.Error(err, "error creating manifest from template")
@@ -181,32 +180,24 @@ func (r *ReconcileNamespaceFederation) generateCRDS(types []metav1.TypeMeta) ([]
 			// }
 
 			gvk := t.GroupVersionKind()
-			log.Info("original group version kind", "gvk", gvk)
 			gvk.Kind = federationv2v1alpha1.PluralName(gvk.Kind)
-			log.Info("plural group version kind", "gvk", gvk)
 			apiResource, err := LookupAPIResource(r.config, gvk.GroupKind().String(), "")
 			if err != nil {
 				fmt.Printf("Error! %v", err)
 			}
 
-			log.Info("found api resource", "apiResource", apiResource)
-
 			typeConfig := typeConfigForTarget(*apiResource)
-
-			log.Info("type config", "typeConfig", typeConfig)
 
 			accessor, err := newSchemaAccessor(r.config, *apiResource)
 			if err != nil {
 				return nil, errors.Wrap(err, "Error initializing validation schema accessor")
 			}
-			log.Info("accessor", "accessor", accessor)
 			shortNames := []string{}
 			for _, shortName := range apiResource.ShortNames {
 				shortNames = append(shortNames, fmt.Sprintf("f%s", shortName))
 			}
 
 			crd := federatedTypeCRD(typeConfig, accessor, shortNames)
-			log.Info("crd", "crd", crd)
 			simpleTypeCrdPairs = append(simpleTypeCrdPairs, SimpleTyepCRDPair{CRD: crd, SimpleType: t})
 
 		}
