@@ -1,8 +1,6 @@
 package namespacefederation
 
 import (
-	"bytes"
-	"encoding/json"
 	"io/ioutil"
 	"strings"
 	"text/template"
@@ -10,8 +8,6 @@ import (
 	federationv2v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	extensionv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/yaml"
 )
 
 var federatedClusterTemplate *template.Template
@@ -101,50 +97,4 @@ func InitializeFederatedTypesTemplates(federatedTypesTemplateFileName string) er
 	}
 
 	return nil
-}
-
-func processTemplate(data interface{}, template *template.Template) (*unstructured.Unstructured, error) {
-	obj := unstructured.Unstructured{}
-	var b bytes.Buffer
-	err := template.Execute(&b, data)
-	if err != nil {
-		log.Error(err, "Error executing template", "template", template)
-		return &obj, err
-	}
-	bb, err := yaml.YAMLToJSON(b.Bytes())
-	if err != nil {
-		log.Error(err, "Error trasnfoming yaml to json", "manifest", string(b.Bytes()))
-		return &obj, err
-	}
-
-	err = json.Unmarshal(bb, &obj)
-	if err != nil {
-		log.Error(err, "Error unmarshalling json manifest", "manifest", string(bb))
-		return &obj, err
-	}
-
-	return &obj, err
-}
-
-func processTemplateArray(data interface{}, template *template.Template) (*[]unstructured.Unstructured, error) {
-	obj := []unstructured.Unstructured{}
-	var b bytes.Buffer
-	err := template.Execute(&b, data)
-	if err != nil {
-		log.Error(err, "Error executing template", "template", template)
-		return &obj, err
-	}
-	bb, err := yaml.YAMLToJSON(b.Bytes())
-	if err != nil {
-		log.Error(err, "Error trasnfoming yaml to json", "manifest", string(b.Bytes()))
-		return &obj, err
-	}
-
-	err = json.Unmarshal(bb, &obj)
-	if err != nil {
-		log.Error(err, "Error unmarshalling json manifest", "manifest", string(bb))
-		return &obj, err
-	}
-
-	return &obj, err
 }

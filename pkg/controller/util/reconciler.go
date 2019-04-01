@@ -2,15 +2,20 @@ package util
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"github.com/prometheus/common/log"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -119,4 +124,50 @@ func (r *ReconcilerBase) CreateIfNotExists(obj metav1.Object) error {
 		return err
 	}
 	return nil
+}
+
+func (r *ReconcilerBase) GetClientFromKubeconfigSecret(secret *corev1.Secret) (*ReconcilerBase, error) {
+
+	if len(secret.Data) == 0 {
+		return nil, fmt.Errorf("Secret contains no values")
+	}
+
+	var val []byte
+	var restConfig *rest.Config
+
+	for key, value := range secret.Data {
+		if key == "kubeconfig" {
+			val = value
+		}
+	}
+
+	if val == nil {
+		return nil, errors.New("kubeconfig entry not found")
+	}
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(val)
+	if err != nil {
+		log.Error(err, "unable to create rest config", "kubeconfig", val)
+		return nil, err
+	}
+
+	mapper, err := apiutil.NewDiscoveryRESTMapper(restConfig)
+	if err != nil {
+		log.Error(err, "unable to create mapper", "restconfig", restConfig)
+		return nil, err
+	}
+
+	c, err := client.New(restConfig, client.Options{
+		Scheme: scheme.Scheme,
+		Mapper: mapper,
+	})
+
+	if err != nil {
+		log.Error(err, "unable to create new client")
+		return nil, err
+	}
+	remoteClusterClient := NewReconcilerBase(c, scheme.Scheme)
+
+	return &remoteClusterClient, nil
+
 }

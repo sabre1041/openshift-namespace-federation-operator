@@ -1,0 +1,163 @@
+package multiplenamespacefederation
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"time"
+
+	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
+	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/util"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+type RemoteGlobalLoadBalacerMerge struct {
+	Instance  federationv1alpha1.MultipleNamespaceFederation
+	Namespace string
+	Secret    corev1.Secret
+}
+
+func (r *ReconcileMultipleNamespaceFederation) manageGlobalLoadBalancer(instance *federationv1alpha1.MultipleNamespaceFederation) (reconcile.Result, error) {
+	switch instance.Spec.GlobalLoadBalancer.GlobalLoadBalancerType {
+	case "Self-Hosted":
+		{
+			return r.manageSelfHostedGlobalLoadBalancer(instance)
+		}
+	case "Cloud-Provider":
+		{
+			return r.manageCloudProviderGlobalLoadBalancer(instance)
+		}
+	default:
+		{
+			return reconcile.Result{}, errors.New("global load balancer type can be Self-Hosted or Cloud-Provider")
+		}
+	}
+
+}
+
+func (r *ReconcileMultipleNamespaceFederation) manageCloudProviderGlobalLoadBalancer(instance *federationv1alpha1.MultipleNamespaceFederation) (reconcile.Result, error) {
+	return reconcile.Result{}, errors.New("not implemented")
+}
+
+func (r *ReconcileMultipleNamespaceFederation) getSecretForExternalDNSServiceAccount(instance *federationv1alpha1.MultipleNamespaceFederation) (corev1.Secret, error) {
+	tokenSecret := corev1.Secret{}
+	serviceAccount := &corev1.ServiceAccount{}
+	err := r.GetClient().Get(context.TODO(), types.NamespacedName{
+		Namespace: instance.GetNamespace(),
+		Name:      "external-dns",
+	}, serviceAccount)
+	if apierrors.IsNotFound(err) {
+		objs, err := util.ProcessTemplateArray(instance, localLoadBalancerServiceAccountTemplate)
+		if err != nil {
+			log.Error(err, "error creating manifest from template")
+			return tokenSecret, err
+		}
+		for _, obj := range *objs {
+			err = r.CreateOrUpdateResource(instance, &obj)
+			if err != nil {
+				log.Error(err, "unable to create object", "object", &obj)
+				return tokenSecret, err
+			}
+		}
+	}
+	if err != nil {
+		log.Error(err, "unable to retrieve extenral-dns service account", "namespace", instance.GetNamespace())
+		return tokenSecret, err
+	}
+
+	var secretName string
+	for _, secret := range serviceAccount.Secrets {
+		if strings.Contains(secret.Name, "token") {
+			secretName = secret.Name
+			break
+		}
+	}
+	if secretName == "" {
+		err := errors.New("unable to find remote token secret")
+		log.Error(err, "unable to find remote token secret", "service account", serviceAccount)
+		return tokenSecret, err
+	}
+
+	err = r.GetClient().Get(context.TODO(), types.NamespacedName{
+		Namespace: serviceAccount.GetNamespace(),
+		Name:      secretName,
+	}, &tokenSecret)
+	if err != nil {
+		log.Error(err, "unable to retrieve remote token secret", "token secret", secretName)
+		return tokenSecret, err
+	}
+	return tokenSecret, nil
+
+}
+
+func (r *ReconcileMultipleNamespaceFederation) manageSelfHostedGlobalLoadBalancer(instance *federationv1alpha1.MultipleNamespaceFederation) (reconcile.Result, error) {
+
+	secret, err := r.getSecretForExternalDNSServiceAccount(instance)
+	if apierrors.IsNotFound(err) {
+		log.Error(err, "either external-dns service account or secret were not found, will wait for one second")
+		return reconcile.Result{
+			Requeue:      true,
+			RequeueAfter: time.Second,
+		}, nil
+	}
+	if err != nil {
+		log.Error(err, "unable to retrieve secret for extenral-dns service account", "namespace", instance.GetNamespace())
+		return reconcile.Result{}, err
+	}
+
+	targetNamespace := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "shglb-" + instance.GetName(),
+		},
+	}
+
+	remoteGlobalLoadBalancerMerge := RemoteGlobalLoadBalacerMerge{
+		Namespace: targetNamespace.GetName(),
+		Secret:    secret,
+		Instance:  *instance,
+	}
+
+	for _, cluster := range instance.Spec.NamespaceFederationSpec.Clusters {
+		log.Info("managing cluster", "cluster", cluster)
+		remoteSecret := corev1.Secret{}
+		err := r.GetClient().Get(context.TODO(), types.NamespacedName{
+			Namespace: cluster.AdminSecretRef.Namespace,
+			Name:      cluster.AdminSecretRef.Name,
+		}, &remoteSecret)
+		if err != nil {
+			log.Error(err, "unable to retrieve admin secret", "namespace", cluster.AdminSecretRef.Namespace, "name", cluster.AdminSecretRef.Name, "cluster", cluster)
+			return reconcile.Result{}, err
+		}
+		remoteClusterClient, err := r.GetClientFromKubeconfigSecret(&remoteSecret)
+		if err != nil {
+			log.Error(err, "unable to create client to remote cluster", "cluster", cluster, "remote secret", remoteSecret)
+			return reconcile.Result{}, err
+		}
+		//create namespace
+		tmpNamespace := targetNamespace.DeepCopy()
+		err = remoteClusterClient.CreateIfNotExists(tmpNamespace)
+		if err != nil {
+			log.Error(err, "unable to create target namespace", "namespace", tmpNamespace)
+			return reconcile.Result{}, err
+		}
+
+		objs, err := util.ProcessTemplateArray(remoteGlobalLoadBalancerMerge, remoteGlobalLoadBalancerTemplate)
+		if err != nil {
+			log.Error(err, "error creating manifest from template")
+			return reconcile.Result{}, err
+		}
+		for _, obj := range *objs {
+			err = remoteClusterClient.CreateOrUpdateResource(instance, &obj)
+			if err != nil {
+				log.Error(err, "unable to create object", "object", &obj)
+				return reconcile.Result{}, err
+			}
+		}
+	}
+
+	return reconcile.Result{}, nil
+}

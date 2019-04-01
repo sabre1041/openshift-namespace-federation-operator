@@ -6,7 +6,7 @@ import (
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
 	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/util"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -77,7 +77,7 @@ func (r *ReconcileMultipleNamespaceFederation) Reconcile(request reconcile.Reque
 	instance := &federationv1alpha1.MultipleNamespaceFederation{}
 	err := r.GetClient().Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -107,6 +107,10 @@ func (r *ReconcileMultipleNamespaceFederation) Reconcile(request reconcile.Reque
 		if err != nil {
 			log.Error(err, "unable to create namespacefederation", "multiplenamespacefederation", instance, "namespace", namespace, "namespacefederation", GetNamespaceFederation(instance, &namespace))
 		}
+	}
+
+	if instance.Spec.GlobalLoadBalancer.GlobalLoadBalancerType != "" && false {
+		return r.manageGlobalLoadBalancer(instance)
 	}
 
 	return reconcile.Result{}, nil

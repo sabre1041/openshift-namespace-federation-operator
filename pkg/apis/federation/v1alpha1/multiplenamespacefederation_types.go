@@ -26,6 +26,8 @@ type GlobalLoadBalancer struct {
 	Domains []string `json:"domains,omitempty"`
 	// +kubebuilder:validation:UniqueItems=false
 	ExternalDNSArgs []string `json:"externalDNSArgs,omitempty"`
+	// ControllerURL represents the master endpoint for this cluster, used only when type=Self-Hosted
+	ControllerURL string `json:"controllerURL,omitempty"`
 }
 
 // MultipleNamespaceFederationStatus defines the observed state of MultipleNamespaceFederation

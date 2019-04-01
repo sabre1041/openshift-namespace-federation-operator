@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
+	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/util"
 )
 
 const (
@@ -66,7 +67,7 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *fe
 		pairs[i].CRD.Kind = "CustomResourceDefinition"
 	}
 
-	objs, err := processTemplateArray(pairs, federatedTypesTemplate)
+	objs, err := util.ProcessTemplateArray(pairs, federatedTypesTemplate)
 	if err != nil {
 		log.Error(err, "error creating manifest from template")
 		return err

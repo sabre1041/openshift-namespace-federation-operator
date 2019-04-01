@@ -3,7 +3,6 @@ package namespacefederation
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	federationv2v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -13,11 +12,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
 const remoteServiceAccountName string = "federation-controllee"
@@ -66,7 +61,7 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedClusters(instance 
 //adding a cluster consist of creating the namespace in the target cluster and populating it with the service account and then creating the federatedcluster and the secret in the same namespace instance
 func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance *federationv1alpha1.NamespaceFederation, adminSecret *corev1.Secret) error {
 	// create new namespace in remote cluster
-	remoteClusterClient, err := r.getAdminClientForCluster(adminSecret)
+	remoteClusterClient, err := r.GetClientFromKubeconfigSecret(adminSecret)
 	if err != nil {
 		log.Error(err, "Error creating remote client for cluster", "cluster", cluster)
 		return err
@@ -85,7 +80,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 
 	// apply template in remote cluster
 
-	objs, err := processTemplateArray(instance, remoteFederatedClusterTemplate)
+	objs, err := util.ProcessTemplateArray(instance, remoteFederatedClusterTemplate)
 	if err != nil {
 		log.Error(err, "error creating manifest from template")
 		return err
@@ -114,7 +109,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 		SecretName:   cluster + "-remote",
 	}
 
-	objs, err = processTemplateArray(federatedClusterMerge, federatedClusterTemplate)
+	objs, err = util.ProcessTemplateArray(federatedClusterMerge, federatedClusterTemplate)
 	if err != nil {
 		log.Error(err, "error creating manifest from template")
 		return err
@@ -203,7 +198,7 @@ func (r *ReconcileNamespaceFederation) manageDeleteCluster(cluster string, insta
 		SecretName:   federatedCluster.Spec.SecretRef.Name,
 	}
 
-	objs, err := processTemplateArray(federatedClusterMerge, federatedClusterTemplate)
+	objs, err := util.ProcessTemplateArray(federatedClusterMerge, federatedClusterTemplate)
 	if err != nil {
 		log.Error(err, "error creating manifest from template")
 		return err
@@ -263,50 +258,4 @@ func containsFederatedCluster(clusters []federationv1alpha1.Cluster, federatedCl
 		}
 	}
 	return false
-}
-
-func (r *ReconcileNamespaceFederation) getAdminClientForCluster(secret *corev1.Secret) (*util.ReconcilerBase, error) {
-
-	if len(secret.Data) == 0 {
-		return nil, fmt.Errorf("Secret contains no values")
-	}
-
-	var val []byte
-	var restConfig *rest.Config
-
-	for key, value := range secret.Data {
-		if key == "kubeconfig" {
-			val = value
-		}
-	}
-
-	if val == nil {
-		return nil, errors.New("kubeconfig entry not found")
-	}
-
-	restConfig, err := clientcmd.RESTConfigFromKubeConfig(val)
-	if err != nil {
-		log.Error(err, "unable to create rest config")
-		return nil, err
-	}
-
-	mapper, err := apiutil.NewDiscoveryRESTMapper(restConfig)
-	if err != nil {
-		log.Error(err, "unable to create mapper")
-		return nil, err
-	}
-
-	c, err := client.New(restConfig, client.Options{
-		Scheme: scheme.Scheme,
-		Mapper: mapper,
-	})
-
-	if err != nil {
-		log.Error(err, "unable to create new client")
-		return nil, err
-	}
-	remoteClusterClient := util.NewReconcilerBase(c, scheme.Scheme)
-
-	return &remoteClusterClient, nil
-
 }
