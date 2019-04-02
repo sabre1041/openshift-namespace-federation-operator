@@ -20,7 +20,6 @@ import (
 	"k8s.io/client-go/rest"
 
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
-	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/util"
 )
 
 const (
@@ -58,7 +57,7 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *fe
 		return err
 	}
 	for i, pair := range pairs {
-		err = r.CreateOrUpdateResource(nil, pair.CRD)
+		err = r.CreateOrUpdateResource(nil, "", pair.CRD)
 		if err != nil {
 			log.Error(err, "unable to create/update object", "object", &pair.CRD)
 			return err
@@ -67,21 +66,8 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedTypes(instance *fe
 		pairs[i].CRD.Kind = "CustomResourceDefinition"
 	}
 
-	objs, err := util.ProcessTemplateArray(pairs, federatedTypesTemplate)
-	if err != nil {
-		log.Error(err, "error creating manifest from template")
-		return err
-	}
-	for _, obj := range *objs {
-		obj.SetNamespace(instance.GetNamespace())
-		err = r.CreateOrUpdateResource(instance, &obj)
-		if err != nil {
-			log.Error(err, "unable to create/update object", "object", &obj)
-			return err
-		}
-	}
+	return r.CreateOrUpdateTemplatedResources(instance, instance.GetNamespace(), pairs, federatedTypesTemplate)
 
-	return nil
 }
 
 func (r *ReconcileNamespaceFederation) deleteFederatedTypes(instance *federationv1alpha1.NamespaceFederation, deleteTypes []metav1.TypeMeta) error {

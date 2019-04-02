@@ -79,18 +79,10 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 	}
 
 	// apply template in remote cluster
-
-	objs, err := util.ProcessTemplateArray(instance, remoteFederatedClusterTemplate)
+	r.CreateOrUpdateTemplatedResources(nil, "", instance, remoteFederatedClusterTemplate)
 	if err != nil {
-		log.Error(err, "error creating manifest from template")
+		log.Error(err, "unable to apply template in remote cluster", "cluster", cluster)
 		return err
-	}
-	for _, obj := range *objs {
-		err = remoteClusterClient.CreateOrUpdateResource(nil, &obj)
-		if err != nil {
-			log.Error(err, "unable to create/update object", "object", &obj)
-			return err
-		}
 	}
 
 	//apply template in local cluster
@@ -109,20 +101,8 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 		SecretName:   cluster + "-remote",
 	}
 
-	objs, err = util.ProcessTemplateArray(federatedClusterMerge, federatedClusterTemplate)
-	if err != nil {
-		log.Error(err, "error creating manifest from template")
-		return err
-	}
-	for _, obj := range *objs {
-		err = r.CreateOrUpdateResource(instance, &obj)
-		if err != nil {
-			log.Error(err, "unable to create/update object", "object", &obj)
-			return err
-		}
-	}
+	return r.CreateOrUpdateTemplatedResources(instance, "", federatedClusterMerge, federatedClusterTemplate)
 
-	return nil
 }
 
 func getSecretForRemoteServiceAccount(remoteClusterClient *util.ReconcilerBase, cluster string, instance *federationv1alpha1.NamespaceFederation) (*corev1.Secret, error) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"text/template"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -54,7 +55,7 @@ func (r *ReconcilerBase) GetScheme() *runtime.Scheme {
 	return r.scheme
 }
 
-func (r *ReconcilerBase) CreateOrUpdateResource(owner metav1.Object, obj metav1.Object) error {
+func (r *ReconcilerBase) CreateOrUpdateResource(owner metav1.Object, namespace string, obj metav1.Object) error {
 	runtimeObj, ok := (obj).(runtime.Object)
 	if !ok {
 		return fmt.Errorf("is not a %T a runtime.Object", obj)
@@ -62,6 +63,9 @@ func (r *ReconcilerBase) CreateOrUpdateResource(owner metav1.Object, obj metav1.
 
 	if owner != nil {
 		_ = controllerutil.SetControllerReference(owner, obj, r.GetScheme())
+	}
+	if namespace != "" {
+		obj.SetNamespace(namespace)
 	}
 
 	obj2 := unstructured.Unstructured{}
@@ -170,4 +174,20 @@ func (r *ReconcilerBase) GetClientFromKubeconfigSecret(secret *corev1.Secret) (*
 
 	return &remoteClusterClient, nil
 
+}
+
+func (r *ReconcilerBase) CreateOrUpdateTemplatedResources(owner metav1.Object, namespace string, data interface{}, template *template.Template) error {
+	objs, err := ProcessTemplateArray(data, template)
+	if err != nil {
+		log.Error(err, "error creating manifest from template")
+		return err
+	}
+	for _, obj := range *objs {
+		err = r.CreateOrUpdateResource(owner, namespace, &obj)
+		if err != nil {
+			log.Error(err, "unable to create object", "object", &obj)
+			return err
+		}
+	}
+	return nil
 }

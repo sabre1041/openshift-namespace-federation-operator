@@ -4,6 +4,7 @@ import (
 	"context"
 
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
+
 	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/multiplenamespacefederation"
 	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/util"
 	corev1 "k8s.io/api/core/v1"
@@ -107,10 +108,15 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	for _, multipleNamespaceFederation := range multipleNamespaceFederations {
-		err = r.CreateOrUpdateResource(&multipleNamespaceFederation, multiplenamespacefederation.GetNamespaceFederation(&multipleNamespaceFederation, instance))
+		//err = r.CreateOrUpdateResource(&multipleNamespaceFederation, multiplenamespacefederation.GetNamespaceFederation(&multipleNamespaceFederation, instance))
+		err = r.CreateOrUpdateResource(nil, multiplenamespacefederation.GetNamespaceFederation(&multipleNamespaceFederation, instance))
 		if err != nil {
 			log.Error(err, "unable to create nanemspacefederation", "multiplenamespacefederation", multipleNamespaceFederation, "namespace", instance, "namespacefederation", multiplenamespacefederation.GetNamespaceFederation(&multipleNamespaceFederation, instance))
 			return reconcile.Result{}, err
+		}
+		err = multiplenamespacefederation.CreateOrUpdateDomains(&(r.ReconcilerBase), &multipleNamespaceFederation, instance)
+		if err != nil {
+			log.Error(err, "unable to create domains", "multiplenamespacefederation", multipleNamespaceFederation, "namespace", instance)
 		}
 	}
 

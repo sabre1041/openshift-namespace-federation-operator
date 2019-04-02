@@ -6,8 +6,9 @@ import (
 	"text/template"
 )
 
-var remoteGlobalLoadBalancerTemplate *template.Template
-var localLoadBalancerServiceAccountTemplate *template.Template
+var selfHostedGlobalLoadBalancerTemplate *template.Template
+var selfHostedGlobalLoadBalancerServiceAccountTemplate *template.Template
+var cloudProviderGlobalLoadBalancerTemplate *template.Template
 
 func InitializeRemoteGlobaLoadBalancerTemplate(remoteGlobalLoadBalancerTemplateFileName string) error {
 
@@ -17,7 +18,7 @@ func InitializeRemoteGlobaLoadBalancerTemplate(remoteGlobalLoadBalancerTemplateF
 		return err
 	}
 
-	remoteGlobalLoadBalancerTemplate, err = template.New("RemoteGlobalLoadBalancer").Parse(string(text))
+	selfHostedGlobalLoadBalancerTemplate, err = template.New("RemoteGlobalLoadBalancer").Parse(string(text))
 	if err != nil {
 		log.Error(err, "Error parsing template", "template", text)
 		return err
@@ -34,7 +35,24 @@ func InitializeLocalLoadBalancerServiceAccountTemplate(localLoadBalancerServiceA
 		return err
 	}
 
-	localLoadBalancerServiceAccountTemplate, err = template.New("RemoteGlobalLoadBalancer").Parse(string(text))
+	selfHostedGlobalLoadBalancerServiceAccountTemplate, err = template.New("RemoteGlobalLoadBalancer").Parse(string(text))
+	if err != nil {
+		log.Error(err, "Error parsing template", "template", text)
+		return err
+	}
+
+	return nil
+}
+
+func InitializeCloudProviderGlobalLoadBalancerTemplate(cloudProviderGlobalLoadBalancerTemplateFileName string) error {
+
+	text, err := ioutil.ReadFile(cloudProviderGlobalLoadBalancerTemplateFileName)
+	if err != nil {
+		log.Error(err, "Error reading statefulset template file", "filename", cloudProviderGlobalLoadBalancerTemplateFileName)
+		return err
+	}
+
+	cloudProviderGlobalLoadBalancerTemplate, err = template.New("RemoteGlobalLoadBalancer").Parse(string(text))
 	if err != nil {
 		log.Error(err, "Error parsing template", "template", text)
 		return err

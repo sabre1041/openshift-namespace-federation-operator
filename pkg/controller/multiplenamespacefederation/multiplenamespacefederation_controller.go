@@ -2,7 +2,9 @@ package multiplenamespacefederation
 
 import (
 	"context"
+	"strings"
 
+	multiclusterdnsv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
 	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/util"
 	corev1 "k8s.io/api/core/v1"
@@ -103,9 +105,14 @@ func (r *ReconcileMultipleNamespaceFederation) Reconcile(request reconcile.Reque
 	}
 	log.Info("selected namespaces", "namespaces", namespaces.Items)
 	for _, namespace := range namespaces.Items {
-		err = r.CreateOrUpdateResource(instance, GetNamespaceFederation(instance, &namespace))
+		//err = r.CreateOrUpdateResource(instance, GetNamespaceFederation(instance, &namespace))
+		err = r.CreateOrUpdateResource(nil, "", GetNamespaceFederation(instance, &namespace))
 		if err != nil {
 			log.Error(err, "unable to create namespacefederation", "multiplenamespacefederation", instance, "namespace", namespace, "namespacefederation", GetNamespaceFederation(instance, &namespace))
+		}
+		err = CreateOrUpdateDomains(&(r.ReconcilerBase), instance, &namespace)
+		if err != nil {
+			log.Error(err, "unable to create domains", "multiplenamespacefederation", instance, "namespace", namespace)
 		}
 	}
 
@@ -114,6 +121,24 @@ func (r *ReconcileMultipleNamespaceFederation) Reconcile(request reconcile.Reque
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func CreateOrUpdateDomains(r *util.ReconcilerBase, instance *federationv1alpha1.MultipleNamespaceFederation, namespace *corev1.Namespace) error {
+	for _, domain := range instance.Spec.GlobalLoadBalancer.Domains {
+		domainResource := multiclusterdnsv1alpha1.Domain{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      strings.Replace(domain, ".", "-", -1),
+				Namespace: namespace.GetName(),
+			},
+			Domain: domain,
+		}
+		err := r.CreateOrUpdateResource(nil, "", &domainResource)
+		if err != nil {
+			log.Error(err, "unable to create domain", "domain", domainResource)
+			return err
+		}
+	}
+	return nil
 }
 
 func GetNamespaceFederation(instance *federationv1alpha1.MultipleNamespaceFederation, namespace *corev1.Namespace) *federationv1alpha1.NamespaceFederation {
