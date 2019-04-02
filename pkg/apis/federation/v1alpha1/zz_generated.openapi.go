@@ -181,6 +181,19 @@ func schema_pkg_apis_federation_v1alpha1_NamespaceFederationSpec(ref common.Refe
 							},
 						},
 					},
+					"domains": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},

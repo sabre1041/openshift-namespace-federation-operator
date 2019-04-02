@@ -22,8 +22,6 @@ type GlobalLoadBalancer struct {
 	// accepted values are cloud-provider and self-hosted
 	// +kubebuilder:validation:Enum=Cloud-Provider,Self-Hosted
 	GlobalLoadBalancerType string `json:"type,omitempty"`
-	// +kubebuilder:validation:Pattern=(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]
-	Domains []string `json:"domains,omitempty"`
 	// +kubebuilder:validation:UniqueItems=false
 	ExternalDNSArgs []string `json:"externalDNSArgs,omitempty"`
 	// ControllerURL represents the master endpoint for this cluster, used only when type=Self-Hosted

@@ -16,6 +16,8 @@ type NamespaceFederationSpec struct {
 	// These are cluster name ref to cluster defined in the cluster registry
 	Clusters       []Cluster         `json:"clusters,omitempty"`
 	FederatedTypes []metav1.TypeMeta `json:"federatedTypes,omitempty"`
+	// +kubebuilder:validation:Pattern=(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]
+	Domains []string `json:"domains,omitempty"`
 }
 
 type Cluster struct {

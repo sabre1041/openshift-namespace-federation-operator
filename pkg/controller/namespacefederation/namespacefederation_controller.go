@@ -109,17 +109,25 @@ func (r *ReconcileNamespaceFederation) Reconcile(request reconcile.Request) (rec
 		return reconcile.Result{}, err
 	}
 
+	err = r.createOrUpdateFederatedTypes(instance)
+	if err != nil {
+		log.Error(err, "unable to reconcile federated types", "instance", instance)
+		return reconcile.Result{}, err
+	}
+	
+	err = r.createDomains(instance)
+	if err != nil {
+		log.Error(err, "unable to create domains", "instance", instance)
+		return reconcile.Result{}, err
+	}	
+
 	err = r.createOrUpdateFederatedClusters(instance)
 	if err != nil {
 		log.Error(err, "unable to reconcile federated cluster", "instance", instance)
 		return reconcile.Result{}, err
 	}
 
-	err = r.createOrUpdateFederatedTypes(instance)
-	if err != nil {
-		log.Error(err, "unable to reconcile federated types", "instance", instance)
-		return reconcile.Result{}, err
-	}
+
 
 	return reconcile.Result{}, nil
 }

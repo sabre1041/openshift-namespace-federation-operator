@@ -1,0 +1,27 @@
+package namespacefederation
+
+import (
+	"strings"
+
+	multiclusterdnsv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
+	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+func (r *ReconcileNamespaceFederation) createDomains(instance *federationv1alpha1.NamespaceFederation) error {
+	for _, domain := range instance.Spec.Domains {
+		domainResource := multiclusterdnsv1alpha1.Domain{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      strings.Replace(domain, ".", "-", -1),
+				Namespace: instance.GetName(),
+			},
+			Domain: domain,
+		}
+		err := r.CreateOrUpdateResource(instance, "", &domainResource)
+		if err != nil {
+			log.Error(err, "unable to create domain", "domain", domainResource)
+			return err
+		}
+	}
+	return nil
+}
