@@ -11,9 +11,13 @@ import (
 func (r *ReconcileNamespaceFederation) createDomains(instance *federationv1alpha1.NamespaceFederation) error {
 	for _, domain := range instance.Spec.Domains {
 		domainResource := multiclusterdnsv1alpha1.Domain{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "multiclusterdns.federation.k8s.io/v1alpha1",
+				Kind:       "Domain",
+			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      strings.Replace(domain, ".", "-", -1),
-				Namespace: instance.GetName(),
+				Namespace: instance.GetNamespace(),
 			},
 			Domain: domain,
 		}

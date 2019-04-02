@@ -79,7 +79,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 	}
 
 	// apply template in remote cluster
-	r.CreateOrUpdateTemplatedResources(nil, "", instance, remoteFederatedClusterTemplate)
+	remoteClusterClient.CreateOrUpdateTemplatedResources(nil, "", instance, remoteFederatedClusterTemplate)
 	if err != nil {
 		log.Error(err, "unable to apply template in remote cluster", "cluster", cluster)
 		return err

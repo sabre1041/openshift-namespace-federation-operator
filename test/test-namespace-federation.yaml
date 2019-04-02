@@ -10,4 +10,6 @@ spec:
       name: admin-raffa2
   federatedTypes:  
   - kind: Route
-    apiVersion: route.openshift.io/v1        
+    apiVersion: route.openshift.io/v1
+  domains:
+  - mydomain.com          
