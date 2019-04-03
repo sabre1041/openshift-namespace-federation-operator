@@ -20,7 +20,7 @@ type MultipleNamespaceFederationSpec struct {
 
 type GlobalLoadBalancer struct {
 	// accepted values are cloud-provider and self-hosted
-	// +kubebuilder:validation:Enum=Cloud-Provider,Self-Hosted
+	// +kubebuilder:validation:Enum=cloud-provider,self-hosted
 	GlobalLoadBalancerType string `json:"type,omitempty"`
 	// +kubebuilder:validation:UniqueItems=false
 	ExternalDNSArgs []string `json:"externalDNSArgs,omitempty"`

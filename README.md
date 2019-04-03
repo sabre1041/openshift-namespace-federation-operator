@@ -20,13 +20,17 @@ spec:
   federatedTypes:  
   - kind: Route
     apiVersion: route.openshift.io/v1
+  domains:
+  - mydomain.com  
 ```
 
 The namespace that is going to be federated is the same namespace in which the CR is created.
 
-The clusters that are goinf to be federated are sepcified in the `clusters` array field. An admin secret refederce which contains a kubeconfig configured to operate on the to-be-federated cluster must also be provided. The account in the kubeconfig file must have enough permissions, likely it needs to be admin.
+The clusters that are going to be federated are sepcified in the `clusters` array field. An admin secret reference, which contains a kubeconfig file configured to operate on the to-be-federated cluster, must also be provided. The account in the kubeconfig file must have enough permissions, likely it needs to be admin.
 
-The type that will be federated are listed in the `federaredTypes` array field. By default only the federated namespace type is created as it is always needed. It must not be added to the array.
+The resource types that will be federated are listed in the `federaredTypes` array field. By default only the federated namespace type is created as it is always needed. It must not be added to the array.
+
+The domains field is where you can specify the domains valid for this federation. This filed has an actual effect only if the global loadbalancer is also installed (see below)
 
 ## Installation
 
@@ -115,9 +119,75 @@ spec:
     federatedTypes:  
     - kind: Route
       apiVersion: route.openshift.io/v1
+    domains:
+    - mydomain.com   
   namespaceSelector:
     matchLabels:
       federation: raffa
 ```
 
 When this CR is created the controller will create the corresponding NamespaceFederation CRs in the selected namespaces.
+
+# Adding a global load balancer
+
+A global load balancer allows sending traffic to application exposed by the federated clusters. 
+This fetaure is provider by [external-dns]().
+You need to own a domain in order to use this feature.
+Two types of global load balancers are supported:
+
+1. Cloud-provided. If you are running on a cloud provider most times it makes sense to use the cloud provider global load balancer service.
+2. Self-hosted. With this option the global load balancer will be installed in teh federated clusters.
+
+Here is an example of a CR using the cloud-provided gloabal loadbalancer:
+
+```yaml
+apiVersion: federation.raffa.systems/v1alpha1
+kind: MultipleNamespaceFederation
+metadata:
+  name: test-multiplenamespacefederation
+spec:
+  namespaceFederationSpec:
+    clusters:
+    - name: raffa2
+      adminSecretRef:
+        namespace: kube-multicluster-public
+        name: admin-raffa2
+    federatedTypes:  
+    - kind: Route
+      apiVersion: route.openshift.io/v1
+    domains:
+    - mydomain.com
+  namespaceSelector:
+    matchLabels:
+      federation: raffa
+  globalLoadBalancer:
+    type: cloud-provided
+    ...
+```
+
+Here is an example of a CR using the slef-hosted gloabal loadbalancer:
+
+```yaml
+apiVersion: federation.raffa.systems/v1alpha1
+kind: MultipleNamespaceFederation
+metadata:
+  name: test-multiplenamespacefederation
+spec:
+  namespaceFederationSpec:
+    clusters:
+    - name: raffa2
+      adminSecretRef:
+        namespace: kube-multicluster-public
+        name: admin-raffa2
+    federatedTypes:  
+    - kind: Route
+      apiVersion: route.openshift.io/v1
+    domains:
+    - mydomain.com
+  namespaceSelector:
+    matchLabels:
+      federation: raffa
+  globalLoadBalancer:
+    type: self-hosted
+    controllerURL: <master-url of this cluster>
+```

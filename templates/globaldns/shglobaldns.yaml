@@ -239,7 +239,7 @@
         errors
         health
         // TODO add domains
-{{ $currentNamespace:="shglb-"+.Instance.GetName }}        
+{{ $currentNamespace:= printf "shglb-%s" .Instance.GetName }}        
 {{ range .Instance.Spec.GlobalLoadBalancer.Domains }}        
         etcd {{ . }} {
           stubzones

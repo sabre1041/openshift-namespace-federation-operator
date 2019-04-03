@@ -2,6 +2,7 @@ package namespacefederation
 
 import (
 	"context"
+	"time"
 
 	federationv1alpha1 "github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/apis/federation/v1alpha1"
 	"github.com/raffaelespazzoli/openshift-namespace-federation-operator/pkg/controller/util"
@@ -114,20 +115,25 @@ func (r *ReconcileNamespaceFederation) Reconcile(request reconcile.Request) (rec
 		log.Error(err, "unable to reconcile federated types", "instance", instance)
 		return reconcile.Result{}, err
 	}
-	
+
 	err = r.createDomains(instance)
 	if err != nil {
 		log.Error(err, "unable to create domains", "instance", instance)
 		return reconcile.Result{}, err
-	}	
+	}
 
 	err = r.createOrUpdateFederatedClusters(instance)
+	if _, ok := err.(secretNotFoundError); ok {
+		log.Info("secret for remote cluster not found, maybe it;s not provisioned yet, waiting for 1 minute: " + err.Error())
+		return reconcile.Result{
+			Requeue:      true,
+			RequeueAfter: time.Minute,
+		}, nil
+	}
 	if err != nil {
 		log.Error(err, "unable to reconcile federated cluster", "instance", instance)
 		return reconcile.Result{}, err
 	}
-
-
 
 	return reconcile.Result{}, nil
 }

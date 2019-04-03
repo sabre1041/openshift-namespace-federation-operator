@@ -15,6 +15,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type secretNotFoundError struct {
+	secretName    string
+	namespace     string
+	originalError error
+}
+
+func (e secretNotFoundError) Error() string {
+	return "could not find secret: " + e.secretName + " in namespace: " + e.namespace + ". Original error: " + e.originalError.Error()
+}
+
 const remoteServiceAccountName string = "federation-controllee"
 
 func (r *ReconcileNamespaceFederation) createOrUpdateFederatedClusters(instance *federationv1alpha1.NamespaceFederation) error {
@@ -43,6 +53,13 @@ func (r *ReconcileNamespaceFederation) createOrUpdateFederatedClusters(instance 
 			Namespace: cluster.AdminSecretRef.Namespace,
 			Name:      cluster.AdminSecretRef.Name,
 		}, &adminSecret)
+		if apierrors.IsNotFound(err) {
+			return secretNotFoundError{
+				secretName:    cluster.AdminSecretRef.Name,
+				namespace:     cluster.AdminSecretRef.Namespace,
+				originalError: err,
+			}
+		}
 		if err != nil {
 			log.Error(err, "unable to retrieve admin secret", "namespace", cluster.AdminSecretRef.Namespace, "name", cluster.AdminSecretRef.Name, "cluster", cluster)
 			return err

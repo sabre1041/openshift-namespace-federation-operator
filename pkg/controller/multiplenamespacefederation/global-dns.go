@@ -20,11 +20,11 @@ type RemoteGlobalLoadBalacerMerge struct {
 
 func (r *ReconcileMultipleNamespaceFederation) manageGlobalLoadBalancer(instance *federationv1alpha1.MultipleNamespaceFederation) (reconcile.Result, error) {
 	switch instance.Spec.GlobalLoadBalancer.GlobalLoadBalancerType {
-	case "Self-Hosted":
+	case "self-hosted":
 		{
 			return r.manageSelfHostedGlobalLoadBalancer(instance)
 		}
-	case "Cloud-Provider":
+	case "cloud-provider":
 		{
 			return r.manageCloudProviderGlobalLoadBalancer(instance)
 		}
