@@ -122,7 +122,7 @@ func (r *ReconcileMultipleNamespaceFederation) manageSelfHostedGlobalLoadBalance
 			log.Error(err, "unable to create client to remote cluster", "cluster", cluster, "remote secret", remoteSecret)
 			return reconcile.Result{}, err
 		}
-		err = remoteClusterClient.CreateOrUpdateTemplatedResources(instance, "", remoteGlobalLoadBalancerMerge, selfHostedGlobalLoadBalancerTemplate)
+		err = remoteClusterClient.CreateOrUpdateTemplatedResources(nil, "", remoteGlobalLoadBalancerMerge, selfHostedGlobalLoadBalancerTemplate)
 	}
 	return reconcile.Result{}, err
 }

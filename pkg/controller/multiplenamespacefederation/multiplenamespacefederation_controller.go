@@ -110,7 +110,7 @@ func (r *ReconcileMultipleNamespaceFederation) Reconcile(request reconcile.Reque
 		}
 	}
 
-	if instance.Spec.GlobalLoadBalancer.GlobalLoadBalancerType != "" && false {
+	if instance.Spec.GlobalLoadBalancer.GlobalLoadBalancerType != "" {
 		return r.manageGlobalLoadBalancer(instance)
 	}
 

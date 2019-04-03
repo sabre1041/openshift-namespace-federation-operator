@@ -2,7 +2,7 @@
 - apiVersion: v1
   kind: Namespace
   metadata:
-    name: shglb-{{ .Instance.GetName }}
+    name: shglb-{{ .Instance.ObjectMeta.Name }}
 
 #etcd operator
 - apiVersion: rbac.authorization.k8s.io/v1
@@ -57,7 +57,7 @@
   subjects:
   - kind: ServiceAccount
     name: etcd-operator
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
   roleRef:
     apiGroup: rbac.authorization.k8s.io
     kind: ClusterRole
@@ -66,14 +66,14 @@
   kind: ServiceAccount
   metadata:
     name: etcd-operator
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
     labels:
       app: etcd-operator
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
     name: etcd-operator
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
     labels:
       app: etcd-operator
   spec:
@@ -116,7 +116,7 @@
   kind: "EtcdCluster"
   metadata:
     name: coredns-etcd
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
   spec:
     size: 3
 # coredns
@@ -159,7 +159,7 @@
   subjects:
   - kind: ServiceAccount
     name: coredns
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
 - apiVersion: extensions/v1beta1
   kind: PodSecurityPolicy
   metadata:
@@ -206,14 +206,14 @@
   kind: ServiceAccount
   metadata:
     name: coredns
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
     labels:
       app: coredns
 - apiVersion: v1
   kind: Service
   metadata:
     name: coredns
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
     labels:
       app: coredns
     annotations:
@@ -231,16 +231,15 @@
   kind: ConfigMap
   metadata:
     name: coredns-config
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
   data:
     Corefile: |-
       .:8053 {
         cache 30
         errors
         health
-        // TODO add domains
-{{ $currentNamespace:= printf "shglb-%s" .Instance.GetName }}        
-{{ range .Instance.Spec.GlobalLoadBalancer.Domains }}        
+{{ $currentNamespace:= printf "shglb-%s" .Instance.ObjectMeta.Name }}        
+{{ range .Instance.Spec.NamespaceFederationSpec.Domains }}        
         etcd {{ . }} {
           stubzones
           path /skydns
@@ -255,7 +254,7 @@
   kind: Deployment
   metadata:
     name: coredns
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
     labels:
       app: coredns
   spec:
@@ -300,7 +299,7 @@
   kind: ConfigMap
   metadata:
     name: external-dns-kubeconfig
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
   data:
     kubeconfig: |-
       apiVersion: v1
@@ -308,8 +307,8 @@
       clusters:
       - name: control-cluster
         cluster:
-          certificate-authority-data: {{ .Secret.Data.ca_crt }}
-          server: https://{{ .Instance.Spec.GlobalLoadBalancer.ControllerURL }}
+          certificate-authority-data: '{{ encode64 (printf "%s" (index .Secret.Data "ca.crt")) }}'
+          server: {{ .Instance.Spec.GlobalLoadBalancer.ControllerURL }}
       contexts:
       - name: control-cluster
         context:
@@ -319,17 +318,17 @@
       users:
       - name: control-cluster
         user:
-          token: {{ .Secret.Data.token }}       
+          token: {{ printf "%s" (.Secret.Data.token) }}       
 - apiVersion: v1
   kind: ServiceAccount
   metadata:
     name: external-dns
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
 - apiVersion: extensions/v1beta1
   kind: Deployment
   metadata:
     name: external-dns
-    namespace: shglb-{{ .Instance.GetName }}
+    namespace: shglb-{{ .Instance.ObjectMeta.Name }}
   spec:
     strategy:
       type: Recreate
@@ -344,19 +343,19 @@
           args: 
           - --provider=coredns         
           - --registry=txt 
-          - --txt-owner-id={{ .Instance.GetName }} 
+          - --txt-owner-id={{ .Instance.ObjectMeta.Name }} 
           - --source=crd 
           - --crd-source-apiversion=multiclusterdns.federation.k8s.io/v1alpha1 
           - --crd-source-kind=DNSEndpoint
           - --kubeconfig=/etc/external-dns/kubeconfig
           env:
           - name: ETCD_URLS
-            value: http://coredns-etcd-client.shglb-{{ .Instance.GetName }}.svc:2379
+            value: http://coredns-etcd-client.shglb-{{ .Instance.ObjectMeta.Name }}.svc:2379
           volumeMounts:
           - name: kubeconfig
             mountPath: /etc/external-dns
         volumes:
         - name: kubeconfig
           configMap:
-            name: coredns-kubeconfig  
+            name: external-dns-kubeconfig  
         serviceAccountName: external-dns                                 
