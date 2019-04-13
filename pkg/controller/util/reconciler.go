@@ -116,10 +116,17 @@ func (r *ReconcilerBase) DeleteResource(obj metav1.Object) error {
 	return nil
 }
 
-func (r *ReconcilerBase) CreateIfNotExists(obj metav1.Object) error {
+func (r *ReconcilerBase) CreateIfNotExists(owner metav1.Object, namespace string, obj metav1.Object) error {
 	runtimeObj, ok := (obj).(runtime.Object)
 	if !ok {
 		return fmt.Errorf("is not a %T a runtime.Object", obj)
+	}
+
+	if owner != nil {
+		_ = controllerutil.SetControllerReference(owner, obj, r.GetScheme())
+	}
+	if namespace != "" {
+		obj.SetNamespace(namespace)
 	}
 
 	err := r.GetClient().Create(context.TODO(), runtimeObj)

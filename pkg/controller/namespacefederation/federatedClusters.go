@@ -89,7 +89,7 @@ func (r *ReconcileNamespaceFederation) manageAddCluster(cluster string, instance
 		},
 	}
 
-	err = remoteClusterClient.CreateIfNotExists(&namespace)
+	err = remoteClusterClient.CreateIfNotExists(nil, "", &namespace)
 	if err != nil {
 		log.Error(err, "Error creating remote namespace for cluster", "cluster", cluster, "namespace", namespace.GetName())
 		return err

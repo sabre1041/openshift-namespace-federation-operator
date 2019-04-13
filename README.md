@@ -165,7 +165,7 @@ spec:
     ...
 ```
 
-Here is an example of a CR using the slef-hosted gloabal loadbalancer:
+Here is an example of a CR using the self-hosted gloabal loadbalancer configuration:
 
 ```yaml
 apiVersion: federation.raffa.systems/v1alpha1

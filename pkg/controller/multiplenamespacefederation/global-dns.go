@@ -42,7 +42,7 @@ func (r *ReconcileMultipleNamespaceFederation) manageCloudProviderGlobalLoadBala
 	return reconcile.Result{}, err
 }
 
-func (r *ReconcileMultipleNamespaceFederation) getSecretForExternalDNSServiceAccount(instance *federationv1alpha1.MultipleNamespaceFederation) (corev1.Secret, error) {
+func (r *ReconcileMultipleNamespaceFederation) createAndGetSecretForExternalDNSServiceAccount(instance *federationv1alpha1.MultipleNamespaceFederation) (corev1.Secret, error) {
 	tokenSecret := corev1.Secret{}
 	serviceAccount := &corev1.ServiceAccount{}
 	err := r.GetClient().Get(context.TODO(), types.NamespacedName{
@@ -88,7 +88,7 @@ func (r *ReconcileMultipleNamespaceFederation) getSecretForExternalDNSServiceAcc
 
 func (r *ReconcileMultipleNamespaceFederation) manageSelfHostedGlobalLoadBalancer(instance *federationv1alpha1.MultipleNamespaceFederation) (reconcile.Result, error) {
 
-	secret, err := r.getSecretForExternalDNSServiceAccount(instance)
+	secret, err := r.createAndGetSecretForExternalDNSServiceAccount(instance)
 	if apierrors.IsNotFound(err) {
 		log.Error(err, "either external-dns service account or secret were not found, will wait for one second")
 		return reconcile.Result{
@@ -113,6 +113,13 @@ func (r *ReconcileMultipleNamespaceFederation) manageSelfHostedGlobalLoadBalance
 			Namespace: cluster.AdminSecretRef.Namespace,
 			Name:      cluster.AdminSecretRef.Name,
 		}, &remoteSecret)
+		if apierrors.IsNotFound(err) {
+			log.Error(err, "the secret for the remote cluster could not be found, maybe the cluster is not provisioned yet, waiting for 1 minute")
+			return reconcile.Result{
+				Requeue:      true,
+				RequeueAfter: time.Minute,
+			}, nil
+		}
 		if err != nil {
 			log.Error(err, "unable to retrieve admin secret", "namespace", cluster.AdminSecretRef.Namespace, "name", cluster.AdminSecretRef.Name, "cluster", cluster)
 			return reconcile.Result{}, err
